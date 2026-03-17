@@ -1,0 +1,20 @@
+dir: ./tasks
+id:
+  strategy: ulid
+  length: 9
+phases:
+  - id: foundation
+    name: "Foundation"
+    description: "Phase 0: Define common Runner interface and project structure"
+  - id: go
+    name: "Go"
+    description: "Phase 1: Build the Go agentrunner library"
+  - id: typescript
+    name: "TypeScript"
+    description: "Phase 2: Build the TypeScript agentrunner library"
+  - id: python
+    name: "Python"
+    description: "Phase 3: Build the Python agentrunner library"
+  - id: java
+    name: "Java"
+    description: "Phase 4: Build the Java agentrunner library"
