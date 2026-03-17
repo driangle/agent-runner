@@ -1,7 +1,7 @@
 ---
 title: "Implement Go Claude Code CLI runner"
 id: "01kkx4yva"
-status: pending
+status: completed
 priority: high
 type: feature
 tags: ["go", "claudecode"]
