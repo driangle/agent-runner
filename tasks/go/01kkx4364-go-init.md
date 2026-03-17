@@ -1,7 +1,7 @@
 ---
 title: "Initialize Go module and package structure"
 id: "01kkx4364"
-status: pending
+status: completed
 priority: high
 type: chore
 tags: ["go"]
@@ -18,7 +18,7 @@ Set up the Go module in `go/` with the right package name, directory layout, and
 
 ## Tasks
 
-- [ ] Create `go/go.mod` with module path (e.g. `github.com/driangle/claude-code-cli-runner-go`)
-- [ ] Create package directory `go/claudecode/`
-- [ ] Add a placeholder `go/claudecode/doc.go` with package comment
-- [ ] Verify `go build ./...` succeeds
+- [x] Create `go/go.mod` with module path (e.g. `github.com/driangle/claude-code-cli-runner-go`)
+- [x] Create package directory `go/claudecode/`
+- [x] Add a placeholder `go/claudecode/doc.go` with package comment
+- [x] Verify `go build ./...` succeeds
