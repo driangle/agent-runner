@@ -83,6 +83,35 @@ type ClaudeOptions struct {
 	Continue bool
 }
 
+// OnMessageFunc is a callback invoked for each streaming message.
+type OnMessageFunc func(agentrunner.Message)
+
+// WithOnMessage sets a callback that is invoked for each streaming message
+// during RunStream. The callback is called before the message is sent on the
+// channel, so it can be used for logging, progress display, etc.
+func WithOnMessage(fn OnMessageFunc) agentrunner.Option {
+	return func(o *agentrunner.Options) {
+		if o.Extra == nil {
+			o.Extra = make(map[any]any)
+		}
+		o.Extra[onMessageKey{}] = fn
+	}
+}
+
+type onMessageKey struct{}
+
+// GetOnMessage extracts the OnMessage callback from resolved Options.
+// Returns nil if no callback was set.
+func GetOnMessage(o *agentrunner.Options) OnMessageFunc {
+	if o.Extra == nil {
+		return nil
+	}
+	if v, ok := o.Extra[onMessageKey{}]; ok {
+		return v.(OnMessageFunc)
+	}
+	return nil
+}
+
 // claudeOptsKey is the key used to store ClaudeOptions in Options.
 // This uses the extension mechanism via the Options.Extra map.
 type claudeOptsKey struct{}
