@@ -1,7 +1,7 @@
 ---
 id: "01kkx7v5m"
 title: "Implement TypeScript Claude Code CLI runner"
-status: in-progress
+status: completed
 priority: high
 phase: typescript
 dependencies: ["01kkx4yva"]
