@@ -1,7 +1,7 @@
 ---
 title: "Add Claude Code streaming callback support"
 id: "01kkx4369"
-status: pending
+status: completed
 priority: medium
 type: feature
 tags: ["go"]
@@ -18,11 +18,11 @@ Add support for receiving parsed messages as they arrive, enabling callers to di
 
 ## Tasks
 
-- [ ] Implement `RunStream(ctx context.Context, prompt string, opts ...Option) (<-chan Message, <-chan error)` — returns a channel of parsed messages
-- [ ] Alternatively or additionally, support an `OnMessage` callback option
-- [ ] Ensure the result message is still the last message on the channel
-- [ ] Handle channel cleanup on context cancellation
-- [ ] Add tests verifying message ordering and channel closure
+- [x] Implement `RunStream(ctx context.Context, prompt string, opts ...Option) (<-chan Message, <-chan error)` — returns a channel of parsed messages
+- [x] Alternatively or additionally, support an `OnMessage` callback option
+- [x] Ensure the result message is still the last message on the channel
+- [x] Handle channel cleanup on context cancellation
+- [x] Add tests verifying message ordering and channel closure
 
 ## Acceptance Criteria
 
