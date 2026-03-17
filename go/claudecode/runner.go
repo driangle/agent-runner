@@ -139,14 +139,159 @@ func (r *Runner) Run(ctx context.Context, prompt string, opts ...agentrunner.Opt
 	return mapResult(resultMsg), nil
 }
 
-// RunStream is not yet implemented.
+// RunStream executes a prompt against the Claude Code CLI and streams parsed
+// messages as they arrive. The message channel emits each parsed message in
+// order and is closed after the final result message or on error. The error
+// channel receives at most one error and is then closed.
+//
+// If an OnMessage callback was provided via options, it is also called for
+// each message before it is sent on the channel.
 func (r *Runner) RunStream(ctx context.Context, prompt string, opts ...agentrunner.Option) (<-chan agentrunner.Message, <-chan error) {
-	errCh := make(chan error, 1)
-	errCh <- errors.New("RunStream is not implemented")
-	close(errCh)
 	msgCh := make(chan agentrunner.Message)
-	close(msgCh)
+	errCh := make(chan error, 1)
+
+	var options agentrunner.Options
+	for _, o := range opts {
+		o(&options)
+	}
+
+	var cancel context.CancelFunc
+	if options.Timeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, options.Timeout)
+	}
+
+	go func() {
+		if cancel != nil {
+			defer cancel()
+		}
+		defer close(msgCh)
+		defer close(errCh)
+
+		args := buildArgs(prompt, &options)
+
+		cmdBuilder := r.cmdBuilder
+		if cmdBuilder == nil {
+			if _, err := exec.LookPath(r.binary); err != nil {
+				errCh <- fmt.Errorf("%w: %s", agentrunner.ErrNotFound, r.binary)
+				return
+			}
+			cmdBuilder = exec.CommandContext
+		}
+
+		cmd := cmdBuilder(ctx, r.binary, args...)
+		cmd.Dir = options.WorkingDir
+
+		if len(options.Env) > 0 {
+			cmd.Env = cmd.Environ()
+			for k, v := range options.Env {
+				cmd.Env = append(cmd.Env, k+"="+v)
+			}
+		}
+
+		stdout, err := cmd.StdoutPipe()
+		if err != nil {
+			errCh <- fmt.Errorf("stdout pipe: %w", err)
+			return
+		}
+
+		var stderr bytes.Buffer
+		cmd.Stderr = &stderr
+
+		if err := cmd.Start(); err != nil {
+			if errors.Is(err, exec.ErrNotFound) {
+				errCh <- fmt.Errorf("%w: %s", agentrunner.ErrNotFound, r.binary)
+			} else {
+				errCh <- fmt.Errorf("start: %w", err)
+			}
+			return
+		}
+
+		// Get the OnMessage callback if set.
+		onMessage := GetOnMessage(&options)
+
+		scanner := bufio.NewScanner(stdout)
+		scanner.Buffer(make([]byte, 0, 64*1024), 10*1024*1024)
+
+		for scanner.Scan() {
+			line := scanner.Text()
+			if line == "" {
+				continue
+			}
+			parsed, parseErr := Parse(line)
+			if parseErr != nil {
+				continue
+			}
+
+			msg := agentrunner.Message{
+				Type: mapMessageType(parsed.Type),
+				Raw:  []byte(line),
+			}
+
+			if onMessage != nil {
+				onMessage(msg)
+			}
+
+			select {
+			case msgCh <- msg:
+			case <-ctx.Done():
+				// Context cancelled while sending; stop streaming.
+				_ = cmd.Process.Kill()
+				_ = cmd.Wait()
+				if ctx.Err() == context.DeadlineExceeded {
+					errCh <- agentrunner.ErrTimeout
+				} else {
+					errCh <- agentrunner.ErrCancelled
+				}
+				return
+			}
+		}
+
+		waitErr := cmd.Wait()
+
+		if ctx.Err() != nil {
+			if ctx.Err() == context.DeadlineExceeded {
+				errCh <- agentrunner.ErrTimeout
+			} else {
+				errCh <- agentrunner.ErrCancelled
+			}
+			return
+		}
+
+		if waitErr != nil {
+			var exitErr *exec.ExitError
+			if errors.As(waitErr, &exitErr) {
+				errCh <- fmt.Errorf("%w: exit %d: %s", agentrunner.ErrNonZeroExit, exitErr.ExitCode(), stderr.String())
+			} else {
+				errCh <- fmt.Errorf("wait: %w", waitErr)
+			}
+			return
+		}
+
+		if scanErr := scanner.Err(); scanErr != nil {
+			errCh <- fmt.Errorf("%w: %v", agentrunner.ErrParseError, scanErr)
+		}
+	}()
+
 	return msgCh, errCh
+}
+
+// mapMessageType maps a Claude stream-json type string to the common MessageType.
+func mapMessageType(typ string) agentrunner.MessageType {
+	switch typ {
+	case "system":
+		return agentrunner.MessageTypeSystem
+	case "assistant":
+		return agentrunner.MessageTypeAssistant
+	case "user":
+		return agentrunner.MessageTypeUser
+	case "result":
+		return agentrunner.MessageTypeResult
+	case "stream_event":
+		// Map to assistant since stream events carry assistant content deltas.
+		return agentrunner.MessageTypeAssistant
+	default:
+		return agentrunner.MessageType(typ)
+	}
 }
 
 func buildArgs(prompt string, opts *agentrunner.Options) []string {
