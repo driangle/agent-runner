@@ -27,6 +27,10 @@ All libraries implement a shared, language-agnostic Runner interface. The interf
 
 Each runner (Claude Code, Gemini, Codex) implements this interface, so callers can swap runners without changing their code.
 
+### Thin and transparent
+
+Each library should be as thin as possible — a minimal layer over the underlying CLI or API. Avoid inventing abstractions, hiding behavior, or adding logic that isn't directly required by the interface. Callers should be able to predict what the library does by knowing what the underlying tool does. Pass options through, surface errors directly, and keep the code auditable at a glance. The goal is a convenience wrapper, not a framework.
+
 ### Language-native conventions
 
 Each library must feel native to its language. Follow the idiomatic structure, naming, error handling, packaging, and testing conventions of that language. Do not impose patterns from one language onto another.

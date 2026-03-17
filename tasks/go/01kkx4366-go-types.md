@@ -1,7 +1,7 @@
 ---
 title: "Define Go common Runner interface and Claude Code types"
 id: "01kkx4366"
-status: pending
+status: completed
 priority: high
 type: feature
 tags: ["go"]
@@ -18,13 +18,13 @@ Define the common `Runner` interface in Go and all Claude Code-specific types. T
 
 ## Tasks
 
-- [ ] Define common `Runner` interface: `Run(ctx, prompt, opts) (*Result, error)` and `RunStream(ctx, prompt, opts) (<-chan Message, <-chan error)`
-- [ ] Define common types: `Options` (shared fields), `Result` (shared fields), `Message` (envelope)
-- [ ] Define Claude Code `Options` extending common options: AllowedTools, DisallowedTools, MCPConfig, JSONSchema, Continue, Resume, etc.
-- [ ] Define Claude Code stream-json message types: `AssistantMessage`, `ContentBlock`, `ResultMessage`, `SystemInitMessage`, `StreamEvent`, `RateLimitEvent`
-- [ ] Define `Usage` struct (input_tokens, output_tokens, cache tokens)
-- [ ] Define sentinel errors: `ErrNotFound`, `ErrTimeout`, `ErrNonZeroExit`, `ErrNoResult`
-- [ ] Ensure all types have JSON tags for correct serialization/deserialization
+- [x] Define common `Runner` interface: `Run(ctx, prompt, opts) (*Result, error)` and `RunStream(ctx, prompt, opts) (<-chan Message, <-chan error)`
+- [x] Define common types: `Options` (shared fields), `Result` (shared fields), `Message` (envelope)
+- [x] Define Claude Code `Options` extending common options: AllowedTools, DisallowedTools, MCPConfig, JSONSchema, Continue, Resume, etc.
+- [x] Define Claude Code stream-json message types: `AssistantMessage`, `ContentBlock`, `ResultMessage`, `SystemInitMessage`, `StreamEvent`, `RateLimitEvent`
+- [x] Define `Usage` struct (input_tokens, output_tokens, cache tokens)
+- [x] Define sentinel errors: `ErrNotFound`, `ErrTimeout`, `ErrNonZeroExit`, `ErrNoResult`
+- [x] Ensure all types have JSON tags for correct serialization/deserialization
 
 ## Acceptance Criteria
 
