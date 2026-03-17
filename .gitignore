@@ -1,1 +1,5 @@
 settings.local.json
+
+# TypeScript
+ts/node_modules/
+ts/dist/
