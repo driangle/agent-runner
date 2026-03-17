@@ -1,7 +1,7 @@
 ---
 title: "Support --include-partial-messages flag in Claude Code runners"
 id: "01kky8ved"
-status: pending
+status: completed
 priority: high
 type: feature
 tags: ["claudecode", "streaming"]

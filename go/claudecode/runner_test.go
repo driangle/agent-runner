@@ -295,6 +295,22 @@ func TestBuildArgsContinue(t *testing.T) {
 	}
 }
 
+func TestBuildArgsIncludePartialMessages(t *testing.T) {
+	opts := &agentrunner.Options{}
+	WithIncludePartialMessages(true)(opts)
+	args := buildArgs("test", opts)
+
+	found := false
+	for _, a := range args {
+		if a == "--include-partial-messages" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("args missing --include-partial-messages: %v", args)
+	}
+}
+
 // --- RunStream tests ---
 
 func TestRunStreamHappyPath(t *testing.T) {

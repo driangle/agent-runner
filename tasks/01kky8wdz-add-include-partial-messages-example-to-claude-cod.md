@@ -1,7 +1,7 @@
 ---
 title: "Add --include-partial-messages example to Claude Code examples"
 id: "01kky8wdz"
-status: pending
+status: completed
 priority: medium
 type: feature
 tags: ["claudecode", "example", "streaming"]
@@ -17,9 +17,9 @@ Update all existing Claude Code example programs (Go, TypeScript) to demonstrate
 
 ## Tasks
 
-- [ ] Add a streaming example with `includePartialMessages: true` to `examples/ts/claudecode/main.ts`
-- [ ] Add a streaming example with `IncludePartialMessages: true` to `examples/go/claudecode/main.go`
-- [ ] Update `CLAUDE.md` example task descriptions to note that examples should demonstrate `--include-partial-messages`
+- [x] Add a streaming example with `includePartialMessages: true` to `examples/ts/claudecode/main.ts`
+- [x] Add a streaming example with `IncludePartialMessages: true` to `examples/go/claudecode/main.go`
+- [x] Update `CLAUDE.md` example task descriptions to note that examples should demonstrate `--include-partial-messages`
 
 ## Acceptance Criteria
 

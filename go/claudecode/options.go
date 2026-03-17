@@ -66,6 +66,14 @@ func WithSessionID(id string) agentrunner.Option {
 	}
 }
 
+// WithIncludePartialMessages enables streaming of partial/incremental messages.
+func WithIncludePartialMessages(enabled bool) agentrunner.Option {
+	return func(o *agentrunner.Options) {
+		opts := getClaudeOpts(o)
+		opts.IncludePartialMessages = enabled
+	}
+}
+
 // ClaudeOptions holds Claude Code-specific configuration that extends
 // the common Options.
 type ClaudeOptions struct {
@@ -92,6 +100,9 @@ type ClaudeOptions struct {
 
 	// SessionID sets a specific session ID for the conversation.
 	SessionID string
+
+	// IncludePartialMessages enables streaming of partial/incremental messages.
+	IncludePartialMessages bool
 }
 
 // OnMessageFunc is a callback invoked for each streaming message.

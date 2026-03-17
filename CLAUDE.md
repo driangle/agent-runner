@@ -86,6 +86,7 @@ Interacts via `claude -p` (print/non-interactive mode) with `--output-format str
 - `--continue` / `--resume` — session management
 - `--mcp-config` — MCP server configuration
 - `--json-schema` — structured output
+- `--include-partial-messages` — stream partial/incremental messages
 
 Stream-JSON message types: `system` (init), `assistant` (text/thinking/tool_use), `user` (tool results), `result` (success/error with cost/usage/duration), `stream_event` (raw API events), `rate_limit_event`.
 
@@ -100,6 +101,16 @@ TBD — research CLI flags and output format.
 #### Ollama (local, `ollama`)
 
 Local runner that talks to the Ollama HTTP API rather than shelling out to a CLI. Enables fully offline agent execution with locally-hosted models. TBD — research API endpoints and streaming format.
+
+### Example programs
+
+Each language library should include example programs under `examples/<lang>/claudecode/` that demonstrate the full API surface. At minimum, every example program should cover:
+
+1. **Simple run** — single prompt, print result fields
+2. **Streaming with `--include-partial-messages`** — use `includePartialMessages: true` to demonstrate real-time incremental streaming output
+3. **Session resume** — multi-turn conversation via session IDs
+
+When adding a new language library, include these examples from the start.
 
 ### Testing strategy
 

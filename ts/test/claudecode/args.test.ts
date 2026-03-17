@@ -66,6 +66,11 @@ describe("buildArgs", () => {
     expect(args).toContain("--continue");
   });
 
+  it("includes --include-partial-messages flag", () => {
+    const args = buildArgs("test", { includePartialMessages: true });
+    expect(args).toContain("--include-partial-messages");
+  });
+
   it("omits zero/undefined optional values", () => {
     const args = buildArgs("test", {
       maxTurns: 0,

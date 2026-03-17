@@ -373,6 +373,9 @@ func buildArgs(prompt string, opts *agentrunner.Options) []string {
 		if co.SessionID != "" {
 			args = append(args, "--session-id", co.SessionID)
 		}
+		if co.IncludePartialMessages {
+			args = append(args, "--include-partial-messages")
+		}
 	}
 
 	args = append(args, "--", prompt)

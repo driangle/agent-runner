@@ -58,6 +58,9 @@ export function buildArgs(
   if (options.sessionId) {
     args.push("--session-id", options.sessionId);
   }
+  if (options.includePartialMessages) {
+    args.push("--include-partial-messages");
+  }
 
   args.push("--", prompt);
   return args;

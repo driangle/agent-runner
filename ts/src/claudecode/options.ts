@@ -62,6 +62,9 @@ export interface ClaudeRunOptions extends RunOptions {
   /** Specific session ID for the conversation. */
   sessionId?: string;
 
+  /** Enable streaming of partial/incremental messages. */
+  includePartialMessages?: boolean;
+
   /** Callback invoked for each streaming message. */
   onMessage?: OnMessageFn;
 }

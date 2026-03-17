@@ -102,6 +102,7 @@ func exampleStreaming(ctx context.Context, runner *claudecode.Runner, verbose bo
 	msgCh, errCh := runner.RunStream(ctx, prompt,
 		agentrunner.WithMaxTurns(1),
 		agentrunner.WithTimeout(30*time.Second),
+		claudecode.WithIncludePartialMessages(true),
 	)
 
 	var model string

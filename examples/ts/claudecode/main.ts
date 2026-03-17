@@ -80,6 +80,7 @@ async function exampleStreaming(runner: Runner, verbose: boolean) {
   const stream = runner.runStream(prompt, {
     maxTurns: 1,
     timeout: 30_000,
+    includePartialMessages: true,
   });
 
   let model = "unknown";
