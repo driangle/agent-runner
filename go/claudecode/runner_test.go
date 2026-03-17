@@ -197,7 +197,7 @@ func TestBuildArgsMinimal(t *testing.T) {
 	opts := &agentrunner.Options{}
 	args := buildArgs("hello world", opts)
 
-	expected := []string{"--print", "--output-format", "stream-json", "--", "hello world"}
+	expected := []string{"--print", "--output-format", "stream-json", "--verbose", "--", "hello world"}
 	if len(args) != len(expected) {
 		t.Fatalf("args = %v, want %v", args, expected)
 	}

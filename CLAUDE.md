@@ -59,6 +59,15 @@ Each library must feel native to its language. Follow the idiomatic structure, n
 - **Python**: pyproject.toml, dataclasses/Pydantic, async/await, pytest
 - **Java**: Maven/Gradle, builder pattern, CompletableFuture, JUnit tests
 
+### Logging
+
+Each library must allow the user to configure debug logging using the language's conventional logging approach. Logging should be opt-in — disabled by default, with no output unless the user explicitly provides a logger. At minimum, log the exact CLI command (binary, args, working directory) before execution so users can reproduce issues outside the library.
+
+- **Go**: accept a `*slog.Logger` via an option; use `DebugContext` for command details
+- **TypeScript**: TBD
+- **Python**: use the standard `logging` module with a named logger (e.g. `logging.getLogger("agentrunner.claudecode")`)
+- **Java**: use SLF4J
+
 ### Supported runners
 
 #### Claude Code CLI (`claude`)

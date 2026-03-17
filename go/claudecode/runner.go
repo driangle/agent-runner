@@ -6,8 +6,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os/exec"
 	"strconv"
+	"strings"
 
 	agentrunner "github.com/driangle/agentrunner-go"
 )
@@ -29,10 +31,17 @@ func WithCommandBuilder(cb CommandBuilder) RunnerOption {
 	return func(r *Runner) { r.cmdBuilder = cb }
 }
 
+// WithLogger sets a structured logger for debug output (e.g. command args).
+// When nil (the default), no logging is performed.
+func WithLogger(l *slog.Logger) RunnerOption {
+	return func(r *Runner) { r.logger = l }
+}
+
 // Runner implements agentrunner.Runner for Claude Code CLI.
 type Runner struct {
 	binary     string
 	cmdBuilder CommandBuilder
+	logger     *slog.Logger
 }
 
 // NewRunner creates a Runner with the given options.
@@ -77,6 +86,8 @@ func (r *Runner) Run(ctx context.Context, prompt string, opts ...agentrunner.Opt
 		}
 	}
 
+	r.logCmd(ctx, cmd)
+
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, fmt.Errorf("stdout pipe: %w", err)
@@ -97,6 +108,7 @@ func (r *Runner) Run(ctx context.Context, prompt string, opts ...agentrunner.Opt
 
 	var resultMsg *StreamMessage
 	var initSessionID string
+	var stdoutErrors []string
 	for scanner.Scan() {
 		line := scanner.Text()
 		if line == "" {
@@ -104,6 +116,9 @@ func (r *Runner) Run(ctx context.Context, prompt string, opts ...agentrunner.Opt
 		}
 		msg, parseErr := Parse(line)
 		if parseErr != nil {
+			// Collect unparseable lines — the CLI may write plain-text
+			// errors to stdout instead of stream-json.
+			stdoutErrors = append(stdoutErrors, line)
 			continue
 		}
 		if msg.Type == "system" && msg.Subtype == "init" && msg.SessionID != "" {
@@ -124,10 +139,24 @@ func (r *Runner) Run(ctx context.Context, prompt string, opts ...agentrunner.Opt
 		return nil, agentrunner.ErrCancelled
 	}
 
+	// If the CLI returned a result message, use it — even if the process
+	// exited non-zero. The CLI uses exit code 1 to signal an error result
+	// (e.g. auth failure), not a crash. The result contains the actual error
+	// text and is_error flag.
+	if resultMsg != nil {
+		result := mapResult(resultMsg)
+		if result.SessionID == "" && initSessionID != "" {
+			result.SessionID = initSessionID
+		}
+		return result, nil
+	}
+
 	if waitErr != nil {
 		var exitErr *exec.ExitError
 		if errors.As(waitErr, &exitErr) {
-			return nil, fmt.Errorf("%w: exit %d: %s", agentrunner.ErrNonZeroExit, exitErr.ExitCode(), stderr.String())
+			detail := collectErrorDetail(stderr.String(), stdoutErrors)
+			r.logCmdFailure(ctx, exitErr.ExitCode(), stderr.String(), stdoutErrors)
+			return nil, fmt.Errorf("%w: exit %d: %s", agentrunner.ErrNonZeroExit, exitErr.ExitCode(), detail)
 		}
 		return nil, fmt.Errorf("wait: %w", waitErr)
 	}
@@ -136,17 +165,7 @@ func (r *Runner) Run(ctx context.Context, prompt string, opts ...agentrunner.Opt
 		return nil, fmt.Errorf("%w: %v", agentrunner.ErrParseError, scanErr)
 	}
 
-	if resultMsg == nil {
-		return nil, agentrunner.ErrNoResult
-	}
-
-	result := mapResult(resultMsg)
-	// Fall back to session ID from the system/init message if the result
-	// message didn't include one.
-	if result.SessionID == "" && initSessionID != "" {
-		result.SessionID = initSessionID
-	}
-	return result, nil
+	return nil, agentrunner.ErrNoResult
 }
 
 // RunStream executes a prompt against the Claude Code CLI and streams parsed
@@ -198,6 +217,8 @@ func (r *Runner) RunStream(ctx context.Context, prompt string, opts ...agentrunn
 			}
 		}
 
+		r.logCmd(ctx, cmd)
+
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
 			errCh <- fmt.Errorf("stdout pipe: %w", err)
@@ -222,6 +243,7 @@ func (r *Runner) RunStream(ctx context.Context, prompt string, opts ...agentrunn
 		scanner := bufio.NewScanner(stdout)
 		scanner.Buffer(make([]byte, 0, 64*1024), 10*1024*1024)
 
+		var stdoutErrors []string
 		for scanner.Scan() {
 			line := scanner.Text()
 			if line == "" {
@@ -229,6 +251,7 @@ func (r *Runner) RunStream(ctx context.Context, prompt string, opts ...agentrunn
 			}
 			parsed, parseErr := Parse(line)
 			if parseErr != nil {
+				stdoutErrors = append(stdoutErrors, line)
 				continue
 			}
 
@@ -270,7 +293,9 @@ func (r *Runner) RunStream(ctx context.Context, prompt string, opts ...agentrunn
 		if waitErr != nil {
 			var exitErr *exec.ExitError
 			if errors.As(waitErr, &exitErr) {
-				errCh <- fmt.Errorf("%w: exit %d: %s", agentrunner.ErrNonZeroExit, exitErr.ExitCode(), stderr.String())
+				detail := collectErrorDetail(stderr.String(), stdoutErrors)
+				r.logCmdFailure(ctx, exitErr.ExitCode(), stderr.String(), stdoutErrors)
+				errCh <- fmt.Errorf("%w: exit %d: %s", agentrunner.ErrNonZeroExit, exitErr.ExitCode(), detail)
 			} else {
 				errCh <- fmt.Errorf("wait: %w", waitErr)
 			}
@@ -305,7 +330,7 @@ func mapMessageType(typ string) agentrunner.MessageType {
 }
 
 func buildArgs(prompt string, opts *agentrunner.Options) []string {
-	args := []string{"--print", "--output-format", "stream-json"}
+	args := []string{"--print", "--output-format", "stream-json", "--verbose"}
 
 	if opts.Model != "" {
 		args = append(args, "--model", opts.Model)
@@ -371,4 +396,55 @@ func mapResult(msg *StreamMessage) *agentrunner.Result {
 		}
 	}
 	return r
+}
+
+// logCmd logs the command that is about to be executed, if a logger is set.
+func (r *Runner) logCmd(ctx context.Context, cmd *exec.Cmd) {
+	if r.logger == nil {
+		return
+	}
+	// Build a shell-friendly command string for easy copy-paste reproduction.
+	quoted := make([]string, len(cmd.Args))
+	for i, a := range cmd.Args {
+		if strings.ContainsAny(a, " \t\n\"'\\") {
+			quoted[i] = "'" + strings.ReplaceAll(a, "'", "'\\''") + "'"
+		} else {
+			quoted[i] = a
+		}
+	}
+	r.logger.DebugContext(ctx, "executing CLI command",
+		slog.String("cmd", strings.Join(quoted, " ")),
+		slog.String("dir", cmd.Dir),
+	)
+}
+
+// logCmdFailure logs stderr and unparseable stdout lines when the CLI exits
+// with a non-zero code, if a logger is set.
+func (r *Runner) logCmdFailure(ctx context.Context, exitCode int, stderr string, stdoutErrors []string) {
+	if r.logger == nil {
+		return
+	}
+	r.logger.ErrorContext(ctx, "CLI command failed",
+		slog.Int("exit_code", exitCode),
+		slog.String("stderr", strings.TrimSpace(stderr)),
+		slog.Any("stdout_errors", stdoutErrors),
+	)
+}
+
+// collectErrorDetail builds a human-readable error string from stderr and
+// any unparseable stdout lines. The CLI sometimes writes errors to stdout
+// as plain text rather than stream-json, so we capture both sources.
+func collectErrorDetail(stderr string, stdoutErrors []string) string {
+	stderr = strings.TrimSpace(stderr)
+	var parts []string
+	if stderr != "" {
+		parts = append(parts, stderr)
+	}
+	if len(stdoutErrors) > 0 {
+		parts = append(parts, strings.Join(stdoutErrors, "\n"))
+	}
+	if len(parts) == 0 {
+		return "unknown error (no output from CLI)"
+	}
+	return strings.Join(parts, "\n")
 }
