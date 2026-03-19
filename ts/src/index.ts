@@ -17,3 +17,10 @@ export {
   CancelledError,
   NoResultError,
 } from "./errors.js";
+
+export { createOllamaRunner } from "./ollama/runner.js";
+
+export type {
+  OllamaRunnerConfig,
+  OllamaRunOptions,
+} from "./ollama/options.js";

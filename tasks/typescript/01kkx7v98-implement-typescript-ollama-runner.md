@@ -1,7 +1,7 @@
 ---
 id: "01kkx7v98"
 title: "Implement TypeScript Ollama runner"
-status: pending
+status: completed
 priority: medium
 phase: typescript
 dependencies: ["01kkx54rn", "01kkx7v5m"]
@@ -18,10 +18,10 @@ Implement the Ollama runner in TypeScript, following the Go Ollama implementatio
 
 ## Tasks
 
-- [ ] Define Ollama-specific option extensions (baseURL, temperature, topK, etc.)
-- [ ] Define Ollama-specific message/output types
-- [ ] Implement `run()` and `runStream()` against the Ollama HTTP API
-- [ ] Add tests with mock HTTP server
+- [x] Define Ollama-specific option extensions (baseURL, temperature, topK, etc.)
+- [x] Define Ollama-specific message/output types
+- [x] Implement `run()` and `runStream()` against the Ollama HTTP API
+- [x] Add tests with mock HTTP server
 
 ## Acceptance Criteria
 

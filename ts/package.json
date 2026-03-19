@@ -13,6 +13,10 @@
     "./claudecode": {
       "types": "./dist/claudecode/index.d.ts",
       "import": "./dist/claudecode/index.js"
+    },
+    "./ollama": {
+      "types": "./dist/ollama/index.d.ts",
+      "import": "./dist/ollama/index.js"
     }
   },
   "files": ["dist"],
