@@ -1,3 +1,12 @@
+/** Callback invoked for each streaming message. */
+export type OnMessageFn = (message: Message) => void;
+
+/** Logger interface for debug output. Opt-in, disabled by default. */
+export interface Logger {
+  debug(message: string, ...args: unknown[]): void;
+  error(message: string, ...args: unknown[]): void;
+}
+
 /** Identifies the kind of streaming message. */
 export type MessageType =
   | "system"

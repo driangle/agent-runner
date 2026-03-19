@@ -1,13 +1,4 @@
-import type { RunOptions, Message } from "../types.js";
-
-/** Callback invoked for each streaming message. */
-export type OnMessageFn = (message: Message) => void;
-
-/** Logger interface for debug output. Opt-in, disabled by default. */
-export interface Logger {
-  debug(message: string, ...args: unknown[]): void;
-  error(message: string, ...args: unknown[]): void;
-}
+import type { RunOptions, OnMessageFn, Logger } from "../types.js";
 
 /**
  * Function that performs an HTTP fetch. Used for dependency injection in tests.

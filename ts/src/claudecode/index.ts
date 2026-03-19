@@ -2,11 +2,11 @@ export { createClaudeRunner } from "./runner.js";
 export { parse } from "./parser.js";
 export { buildArgs } from "./args.js";
 
+export type { OnMessageFn, Logger } from "../types.js";
+
 export type {
   ClaudeRunnerConfig,
   ClaudeRunOptions,
-  OnMessageFn,
-  Logger,
   SpawnFn,
 } from "./options.js";
 

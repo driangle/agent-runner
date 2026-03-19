@@ -1,14 +1,5 @@
 import type { ChildProcess } from "node:child_process";
-import type { RunOptions, Message } from "../types.js";
-
-/** Callback invoked for each streaming message. */
-export type OnMessageFn = (message: Message) => void;
-
-/** Logger interface for debug output. Opt-in, disabled by default. */
-export interface Logger {
-  debug(message: string, ...args: unknown[]): void;
-  error(message: string, ...args: unknown[]): void;
-}
+import type { RunOptions, OnMessageFn, Logger } from "../types.js";
 
 /**
  * Function that spawns a child process. Used for dependency injection in tests.

@@ -1,10 +1,10 @@
 export { createOllamaRunner } from "./runner.js";
 
+export type { OnMessageFn, Logger } from "../types.js";
+
 export type {
   OllamaRunnerConfig,
   OllamaRunOptions,
-  OnMessageFn,
-  Logger,
   FetchFn,
 } from "./options.js";
 
