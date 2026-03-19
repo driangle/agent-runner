@@ -12,8 +12,7 @@
 
 import { parseArgs } from "node:util";
 import { createOllamaRunner } from "agentrunner/ollama";
-import type { OllamaRunOptions } from "agentrunner/ollama";
-import type { ChatResponse } from "agentrunner/ollama";
+import type { OllamaRunOptions, ChatResponse } from "agentrunner/ollama";
 import type { Runner } from "agentrunner";
 
 const { values } = parseArgs({
@@ -63,7 +62,7 @@ async function main() {
 }
 
 /** Send a single prompt and print the result. */
-async function exampleSimpleRun(runner: Runner, model: string) {
+async function exampleSimpleRun(runner: Runner<OllamaRunOptions>, model: string) {
   const prompt = "What is 2+2? Reply with just the number.";
   console.log(`Prompt:   ${prompt}`);
 
@@ -79,7 +78,7 @@ async function exampleSimpleRun(runner: Runner, model: string) {
 }
 
 /** Use runStream to print tokens as they arrive. */
-async function exampleStreaming(runner: Runner, model: string) {
+async function exampleStreaming(runner: Runner<OllamaRunOptions>, model: string) {
   const prompt = "List 3 fun facts about TypeScript. Be brief.";
   console.log(`Prompt: ${prompt}`);
   console.log("---");
@@ -92,26 +91,25 @@ async function exampleStreaming(runner: Runner, model: string) {
   };
 
   for await (const msg of runner.runStream(prompt, options)) {
+    const chunk = msg.data as ChatResponse;
     if (msg.type === "assistant") {
-      const chunk = JSON.parse(msg.raw) as ChatResponse;
       if (chunk.message.content) {
         process.stdout.write(chunk.message.content);
       }
     } else if (msg.type === "result") {
-      const final = JSON.parse(msg.raw) as ChatResponse;
       console.log("\n---");
       console.log(
-        `Duration: ${final.total_duration ? Math.floor(final.total_duration / 1e6) : 0}ms`,
+        `Duration: ${chunk.total_duration ? Math.floor(chunk.total_duration / 1e6) : 0}ms`,
       );
       console.log(
-        `Tokens:   ${final.prompt_eval_count ?? 0} in / ${final.eval_count ?? 0} out`,
+        `Tokens:   ${chunk.prompt_eval_count ?? 0} in / ${chunk.eval_count ?? 0} out`,
       );
     }
   }
 }
 
 /** Demonstrate streaming with a thinking model (e.g. qwen3). */
-async function exampleThinking(runner: Runner, model: string) {
+async function exampleThinking(runner: Runner<OllamaRunOptions>, model: string) {
   const prompt = "How many r's are in the word strawberry?";
   console.log(`Prompt: ${prompt}`);
   console.log("---");
@@ -125,7 +123,7 @@ async function exampleThinking(runner: Runner, model: string) {
   for await (const msg of runner.runStream(prompt, options)) {
     if (msg.type !== "assistant") continue;
 
-    const chunk = JSON.parse(msg.raw) as ChatResponse;
+    const chunk = msg.data as ChatResponse;
     if (chunk.message.thinking) {
       // Dim text for thinking output.
       process.stdout.write(`\x1b[2m${chunk.message.thinking}\x1b[0m`);
@@ -138,7 +136,7 @@ async function exampleThinking(runner: Runner, model: string) {
 }
 
 /** Demonstrate the Session object pattern with full lifecycle control. */
-async function exampleSession(runner: Runner, model: string) {
+async function exampleSession(runner: Runner<OllamaRunOptions>, model: string) {
   const prompt = "What is the capital of France? Reply with just the city name.";
   console.log(`Prompt: ${prompt}`);
 
@@ -149,7 +147,7 @@ async function exampleSession(runner: Runner, model: string) {
   for await (const msg of session.messages) {
     count++;
     if (msg.type === "assistant") {
-      const chunk = JSON.parse(msg.raw) as ChatResponse;
+      const chunk = msg.data as ChatResponse;
       if (chunk.message.content) {
         process.stdout.write(chunk.message.content);
       }

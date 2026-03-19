@@ -1,31 +1,26 @@
 import { createInterface } from "node:readline";
 import { once } from "node:events";
 import type { Runner, Result, Message, Session } from "../types.js";
-import { NotFoundError, NonZeroExitError, NoResultError } from "../errors.js";
+import { NotFoundError, NonZeroExitError, NoResultError, NotSupportedError } from "../errors.js";
 import type { ClaudeRunnerConfig, ClaudeRunOptions, SpawnFn } from "./options.js";
 import type { StreamMessage } from "./types.js";
 import { parse } from "./parser.js";
 import { buildArgs } from "./args.js";
 import { mapMessageType, mapResult } from "./mapping.js";
-import {
-  combinedSignal,
-  abortError,
-  logCmd,
-  resolveSpawn,
-  collectErrorDetail,
-} from "./process.js";
+import { combinedSignal, abortError } from "../signal.js";
+import { logCmd, resolveSpawn, collectErrorDetail } from "./process.js";
 
 /** Create a Claude Code runner. */
-export function createClaudeRunner(config: ClaudeRunnerConfig = {}): Runner {
+export function createClaudeRunner(config: ClaudeRunnerConfig = {}): Runner<ClaudeRunOptions> {
   const { spawn: spawnFn, binary } = resolveSpawn(config);
 
   return {
     start: (prompt, options) =>
-      start(config, spawnFn, binary, prompt, options as ClaudeRunOptions),
+      start(config, spawnFn, binary, prompt, options),
     run: (prompt, options) =>
-      run(config, spawnFn, binary, prompt, options as ClaudeRunOptions),
+      run(config, spawnFn, binary, prompt, options),
     runStream: (prompt, options) =>
-      runStream(config, spawnFn, binary, prompt, options as ClaudeRunOptions),
+      runStream(config, spawnFn, binary, prompt, options),
   };
 }
 
@@ -56,7 +51,7 @@ function start(
       result: Promise.reject(err),
       abort: () => {},
       send: () => {
-        throw new Error("not yet supported");
+        throw new NotSupportedError("send is not yet supported");
       },
     };
   }
@@ -106,6 +101,7 @@ function start(
         const msg: Message = {
           type: mapMessageType(parsed.type),
           raw: line,
+          data: parsed,
         };
 
         if (options.onMessage) {
@@ -165,7 +161,7 @@ function start(
       }
     },
     send: () => {
-      throw new Error("not yet supported");
+      throw new NotSupportedError("send is not yet supported");
     },
   };
 }

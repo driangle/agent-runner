@@ -10,6 +10,7 @@ import {
   NonZeroExitError,
   TimeoutError,
   CancelledError,
+  NotSupportedError,
 } from "../../src/errors.js";
 
 /**
@@ -214,12 +215,10 @@ describe("runStream", () => {
 
     expect(messages).toHaveLength(5);
     expect(messages[0].type).toBe("system");
-    expect(messages[messages.length - 1].type).toBe("result");
-
-    // Middle messages should be assistant (stream_event maps to assistant).
-    for (const msg of messages.slice(1, -1)) {
-      expect(msg.type).toBe("assistant");
-    }
+    expect(messages[1].type).toBe("stream_event");
+    expect(messages[2].type).toBe("stream_event");
+    expect(messages[3].type).toBe("assistant");
+    expect(messages[4].type).toBe("result");
   });
 
   it("message ordering: system first, result last", async () => {
@@ -360,11 +359,11 @@ describe("start (Session)", () => {
     await expect(session.result).rejects.toThrow();
   });
 
-  it("send throws not yet supported", () => {
+  it("send throws NotSupportedError", () => {
     const runner = createClaudeRunner({ spawn: mockSpawn(happyLines) });
     const session = runner.start("hello");
 
-    expect(() => session.send("test")).toThrow("not yet supported");
+    expect(() => session.send("test")).toThrow(NotSupportedError);
 
     // Drain to avoid resource leak.
     (async () => {

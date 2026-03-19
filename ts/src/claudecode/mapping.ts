@@ -13,8 +13,7 @@ export function mapMessageType(type: string): MessageType {
     case "result":
       return "result";
     case "stream_event":
-      // Stream events carry assistant content deltas.
-      return "assistant";
+      return "stream_event";
     default:
       return type;
   }

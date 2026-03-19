@@ -49,6 +49,25 @@ export class CancelledError extends RunnerError {
   }
 }
 
+/** HTTP request returned a non-success status code. */
+export class HttpError extends RunnerError {
+  statusCode: number;
+
+  constructor(statusCode: number, message: string) {
+    super(message);
+    this.name = "HttpError";
+    this.statusCode = statusCode;
+  }
+}
+
+/** Operation is not supported by this runner. */
+export class NotSupportedError extends RunnerError {
+  constructor(message: string) {
+    super(message);
+    this.name = "NotSupportedError";
+  }
+}
+
 /** Stream ended without a result message. */
 export class NoResultError extends RunnerError {
   constructor() {

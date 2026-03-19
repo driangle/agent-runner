@@ -7,8 +7,10 @@ import {
   CancelledError,
   ParseError,
   NoResultError,
-  NonZeroExitError,
+  HttpError,
+  NotSupportedError,
 } from "../errors.js";
+import { combinedSignal, abortError } from "../signal.js";
 import type {
   OllamaRunnerConfig,
   OllamaRunOptions,
@@ -24,17 +26,17 @@ import type {
 const DEFAULT_BASE_URL = "http://localhost:11434";
 
 /** Create an Ollama runner. */
-export function createOllamaRunner(config: OllamaRunnerConfig = {}): Runner {
+export function createOllamaRunner(config: OllamaRunnerConfig = {}): Runner<OllamaRunOptions> {
   const baseURL = config.baseURL ?? DEFAULT_BASE_URL;
   const fetchFn: FetchFn = config.fetch ?? fetch;
 
   return {
     start: (prompt, options) =>
-      start(config, fetchFn, baseURL, prompt, options as OllamaRunOptions),
+      start(config, fetchFn, baseURL, prompt, options),
     run: (prompt, options) =>
-      run(config, fetchFn, baseURL, prompt, options as OllamaRunOptions),
+      run(config, fetchFn, baseURL, prompt, options),
     runStream: (prompt, options) =>
-      runStream(config, fetchFn, baseURL, prompt, options as OllamaRunOptions),
+      runStream(config, fetchFn, baseURL, prompt, options),
   };
 }
 
@@ -86,7 +88,7 @@ function start(
         throw new NotFoundError("model not found (HTTP 404)");
       }
       if (!resp.ok) {
-        throw new NonZeroExitError(resp.status, `HTTP ${resp.status}`);
+        throw new HttpError(resp.status, `HTTP ${resp.status}`);
       }
 
       if (!resp.body) {
@@ -123,6 +125,7 @@ function start(
         const msg: Message = {
           type: chunk.done ? "result" : "assistant",
           raw: line,
+          data: chunk,
         };
 
         if (options.onMessage) {
@@ -165,10 +168,6 @@ function start(
       });
     } catch (err) {
       clearTO();
-      if (err instanceof NotFoundError || err instanceof NonZeroExitError || err instanceof ParseError || err instanceof NoResultError) {
-        rejectResult!(err);
-        return;
-      }
       rejectResult!(mapFetchError(err));
     }
   }
@@ -182,7 +181,7 @@ function start(
       abortController.abort("cancelled");
     },
     send: () => {
-      throw new Error("not yet supported");
+      throw new NotSupportedError("send is not yet supported");
     },
   };
 }
@@ -295,55 +294,8 @@ function buildModelOptions(options: OllamaRunOptions): ModelOptions | undefined 
   return opts;
 }
 
-/** Combine timeout and user-provided signal into a single AbortSignal. */
-function combinedSignal(
-  options: OllamaRunOptions,
-): { signal: AbortSignal; clearTimeout: () => void } {
-  const signals: AbortSignal[] = [];
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-  if (options.signal) {
-    signals.push(options.signal);
-  }
-
-  if (options.timeout != null && options.timeout > 0) {
-    const controller = new AbortController();
-    timeoutId = setTimeout(() => controller.abort("timeout"), options.timeout);
-    signals.push(controller.signal);
-  }
-
-  if (signals.length === 0) {
-    const controller = new AbortController();
-    return { signal: controller.signal, clearTimeout: () => {} };
-  }
-
-  if (signals.length === 1) {
-    return {
-      signal: signals[0],
-      clearTimeout: () => {
-        if (timeoutId != null) clearTimeout(timeoutId);
-      },
-    };
-  }
-
-  const combined = AbortSignal.any(signals);
-  return {
-    signal: combined,
-    clearTimeout: () => {
-      if (timeoutId != null) clearTimeout(timeoutId);
-    },
-  };
-}
-
-function abortError(signal: AbortSignal): TimeoutError | CancelledError {
-  if (signal.reason === "timeout") {
-    return new TimeoutError("execution timed out");
-  }
-  return new CancelledError("execution cancelled");
-}
-
 function mapFetchError(err: unknown): Error {
-  if (err instanceof TimeoutError || err instanceof CancelledError || err instanceof NotFoundError || err instanceof NonZeroExitError || err instanceof ParseError || err instanceof NoResultError) {
+  if (err instanceof TimeoutError || err instanceof CancelledError || err instanceof NotFoundError || err instanceof HttpError || err instanceof ParseError || err instanceof NoResultError) {
     return err;
   }
 

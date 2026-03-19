@@ -32,9 +32,8 @@ export function parse(line: string): StreamMessage {
   }
 
   const msg: StreamMessage = {
-    type: raw.type,
-    content: [],
-    ...(raw as object),
+    ...(raw as unknown as StreamMessage),
+    content: [], // Default; overridden below for assistant messages.
   };
 
   switch (msg.type) {

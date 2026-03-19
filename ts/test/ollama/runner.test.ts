@@ -5,11 +5,12 @@ import type { ChatResponse } from "../../src/ollama/types.js";
 import type { Message } from "../../src/types.js";
 import {
   NotFoundError,
-  NonZeroExitError,
+  HttpError,
   TimeoutError,
   CancelledError,
   ParseError,
   NoResultError,
+  NotSupportedError,
 } from "../../src/errors.js";
 
 /** Build a JSON line for a non-final chat response chunk. */
@@ -240,10 +241,10 @@ describe("run", () => {
     expect(body.think).toBe(true);
   });
 
-  it("HTTP 500 throws NonZeroExitError", async () => {
+  it("HTTP 500 throws HttpError", async () => {
     const runner = createOllamaRunner({ fetch: statusFetch(500) });
     await expect(runner.run("hello", { model: "llama3" })).rejects.toThrow(
-      NonZeroExitError,
+      HttpError,
     );
   });
 
@@ -437,11 +438,11 @@ describe("start (Session)", () => {
     await expect(session.result).rejects.toThrow(CancelledError);
   });
 
-  it("send throws not yet supported", () => {
+  it("send throws NotSupportedError", () => {
     const runner = createOllamaRunner({ fetch: mockFetch(happyLines) });
     const session = runner.start("hello", { model: "llama3" });
 
-    expect(() => session.send("test")).toThrow("not yet supported");
+    expect(() => session.send("test")).toThrow(NotSupportedError);
 
     // Drain to avoid resource leak.
     (async () => {

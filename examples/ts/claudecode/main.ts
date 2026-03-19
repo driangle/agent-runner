@@ -11,8 +11,9 @@
 //   npx tsx main.ts --binary /path/to/claude
 
 import { parseArgs } from "node:util";
-import { createClaudeRunner, parse } from "agentrunner/claudecode";
+import { createClaudeRunner } from "agentrunner/claudecode";
 import type { ClaudeRunOptions } from "agentrunner/claudecode";
+import type { StreamMessage } from "agentrunner/claudecode";
 import type { Runner } from "agentrunner";
 
 const { values } = parseArgs({
@@ -55,7 +56,7 @@ async function main() {
 }
 
 /** Send a single prompt and print the result. */
-async function exampleSimpleRun(runner: Runner) {
+async function exampleSimpleRun(runner: Runner<ClaudeRunOptions>) {
   const prompt = "What is 2+2? Reply with just the number.";
   console.log(`Prompt:   ${prompt}`);
 
@@ -76,7 +77,7 @@ async function exampleSimpleRun(runner: Runner) {
 }
 
 /** Use runStream to print messages as they arrive. */
-async function exampleStreaming(runner: Runner, verbose: boolean) {
+async function exampleStreaming(runner: Runner<ClaudeRunOptions>, verbose: boolean) {
   const prompt = "List 3 fun facts about TypeScript. Be brief.";
   console.log(`Prompt: ${prompt}`);
   console.log("---");
@@ -90,38 +91,31 @@ async function exampleStreaming(runner: Runner, verbose: boolean) {
   let model = "unknown";
 
   for await (const msg of stream) {
+    const data = msg.data as StreamMessage;
+
     switch (msg.type) {
       case "system": {
         if (verbose) console.log(`[system] ${msg.raw}`);
-        const parsed = parse(msg.raw);
-        if (parsed.model) model = parsed.model;
+        if (data.model) model = data.model;
         break;
       }
-      case "assistant": {
-        // With --include-partial-messages, the CLI emits two kinds of
-        // messages mapped to "assistant":
-        //   1. stream_event with content_block_delta — real-time text deltas
-        //   2. assistant — full accumulated message (arrives at the end)
-        // Print deltas for real-time streaming; skip the final assistant
-        // message to avoid duplicating the output.
-        const parsed = parse(msg.raw);
-        if (parsed.type === "stream_event") {
-          const delta = parsed.event?.delta;
-          if (delta?.type === "text_delta" && delta.text) {
-            process.stdout.write(delta.text);
-          }
+      case "stream_event": {
+        // With --include-partial-messages, stream_event messages carry
+        // real-time text deltas via content_block_delta events.
+        const delta = data.event?.delta;
+        if (delta?.type === "text_delta" && delta.text) {
+          process.stdout.write(delta.text);
         }
         break;
       }
       case "result": {
-        const parsed = parse(msg.raw);
         console.log("\n---");
-        console.log(`Cost:     $${(parsed.total_cost_usd ?? 0).toFixed(4)}`);
-        console.log(`Duration: ${parsed.duration_ms ?? 0}ms`);
-        console.log(`Turns:    ${parsed.num_turns ?? 0}`);
-        console.log(`Model:    ${parsed.model ?? model}`);
-        console.log(`Session:  ${parsed.session_id ?? ""}`);
-        console.log(`Error:    ${parsed.is_error ?? false}`);
+        console.log(`Cost:     $${(data.total_cost_usd ?? 0).toFixed(4)}`);
+        console.log(`Duration: ${data.duration_ms ?? 0}ms`);
+        console.log(`Turns:    ${data.num_turns ?? 0}`);
+        console.log(`Model:    ${data.model ?? model}`);
+        console.log(`Session:  ${data.session_id ?? ""}`);
+        console.log(`Error:    ${data.is_error ?? false}`);
         break;
       }
     }
@@ -129,7 +123,7 @@ async function exampleStreaming(runner: Runner, verbose: boolean) {
 }
 
 /** Demonstrate multi-turn conversations using session IDs. */
-async function exampleSessionResume(runner: Runner) {
+async function exampleSessionResume(runner: Runner<ClaudeRunOptions>) {
   // First turn: ask Claude to remember something.
   const prompt1 = "Remember this number: 42. Just confirm you've noted it.";
   console.log(`Prompt 1: ${prompt1}`);
@@ -150,18 +144,17 @@ async function exampleSessionResume(runner: Runner) {
   const prompt2 = "What number did I ask you to remember?";
   console.log(`\nPrompt 2: ${prompt2} (resume: ${first.sessionId})`);
 
-  const resumeOptions: ClaudeRunOptions = {
+  const second = await runner.run(prompt2, {
     maxTurns: 1,
     timeout: 30_000,
     resume: first.sessionId,
-  };
-  const second = await runner.run(prompt2, resumeOptions);
+  });
 
   console.log(`Response: ${second.text}`);
 }
 
 /** Demonstrate the Session object pattern with full lifecycle control. */
-async function exampleSession(runner: Runner) {
+async function exampleSession(runner: Runner<ClaudeRunOptions>) {
   const prompt = "What is the capital of France? Reply with just the city name.";
   console.log(`Prompt: ${prompt}`);
 

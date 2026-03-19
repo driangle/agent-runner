@@ -16,15 +16,19 @@ export type MessageType =
   | "tool_result"
   | "result"
   | "error"
+  | "stream_event"
   | (string & {});
 
 /** The unit of streaming output from runStream. */
-export interface Message {
+export interface Message<T = unknown> {
   /** Identifies the message kind. */
   type: MessageType;
 
   /** Original JSON line for runner-specific parsing. */
   raw: string;
+
+  /** Parsed payload from the runner. */
+  data: T;
 }
 
 /** Token consumption counts. */
@@ -112,13 +116,13 @@ export interface Session {
 }
 
 /** Runner executes prompts against an AI coding agent. */
-export interface Runner {
+export interface Runner<O extends RunOptions = RunOptions> {
   /** Launch an agent process and return a Session for full control. */
-  start(prompt: string, options?: RunOptions): Session;
+  start(prompt: string, options?: O): Session;
 
   /** Send a prompt and block until the agent finishes. */
-  run(prompt: string, options?: RunOptions): Promise<Result>;
+  run(prompt: string, options?: O): Promise<Result>;
 
   /** Send a prompt and stream messages as they arrive. */
-  runStream(prompt: string, options?: RunOptions): AsyncIterable<Message>;
+  runStream(prompt: string, options?: O): AsyncIterable<Message>;
 }
