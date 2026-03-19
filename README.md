@@ -2,6 +2,8 @@
 
 Language-native libraries for programmatically invoking AI coding agent CLIs.
 
+> **Note:** This project is under active development and has not been released yet. APIs may change without notice.
+
 ## Supported Runners
 
 | Runner | Go | TypeScript | Python | Java |
