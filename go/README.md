@@ -1,4 +1,4 @@
-# agentrunner-go
+# agentrunner/go
 
 Go library for programmatically invoking AI coding agents. Currently supports [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code).
 
@@ -10,7 +10,7 @@ Go library for programmatically invoking AI coding agents. Currently supports [C
 ## Installation
 
 ```bash
-go get github.com/driangle/agentrunner-go
+go get github.com/driangle/agent-runner/go
 ```
 
 ## Quick Start
@@ -23,8 +23,8 @@ import (
 	"fmt"
 	"log"
 
-	agentrunner "github.com/driangle/agentrunner-go"
-	"github.com/driangle/agentrunner-go/claudecode"
+	agentrunner "github.com/driangle/agent-runner/go"
+	"github.com/driangle/agent-runner/go/claudecode"
 )
 
 func main() {

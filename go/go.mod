@@ -1,3 +1,3 @@
-module github.com/driangle/agentrunner-go
+module github.com/driangle/agent-runner/go
 
 go 1.22

@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	agentrunner "github.com/driangle/agentrunner-go"
+	agentrunner "github.com/driangle/agent-runner/go"
 )
 
 // CommandBuilder creates an *exec.Cmd for the given binary and arguments.

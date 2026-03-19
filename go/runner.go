@@ -193,13 +193,20 @@ type Usage struct {
 type MessageType string
 
 const (
-	MessageTypeSystem     MessageType = "system"
-	MessageTypeAssistant  MessageType = "assistant"
-	MessageTypeUser       MessageType = "user"
-	MessageTypeToolUse    MessageType = "tool_use"
+	// MessageTypeSystem is the initial system/init message from the CLI.
+	MessageTypeSystem MessageType = "system"
+	// MessageTypeAssistant is an assistant response (text, thinking, or tool_use).
+	MessageTypeAssistant MessageType = "assistant"
+	// MessageTypeUser is a user-originated message (typically tool results).
+	MessageTypeUser MessageType = "user"
+	// MessageTypeToolUse indicates the assistant is invoking a tool.
+	MessageTypeToolUse MessageType = "tool_use"
+	// MessageTypeToolResult is the result returned from a tool invocation.
 	MessageTypeToolResult MessageType = "tool_result"
-	MessageTypeResult     MessageType = "result"
-	MessageTypeError      MessageType = "error"
+	// MessageTypeResult is the final result message with cost/usage/duration.
+	MessageTypeResult MessageType = "result"
+	// MessageTypeError indicates an error occurred during execution.
+	MessageTypeError MessageType = "error"
 )
 
 // Message is the unit of streaming output from RunStream.
