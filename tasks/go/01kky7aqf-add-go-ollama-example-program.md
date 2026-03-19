@@ -1,7 +1,7 @@
 ---
 title: "Add Go Ollama example program"
 id: "01kky7aqf"
-status: pending
+status: completed
 priority: medium
 type: feature
 tags: ["go", "ollama", "example"]

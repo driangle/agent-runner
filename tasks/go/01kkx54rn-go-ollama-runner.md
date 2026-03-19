@@ -1,7 +1,7 @@
 ---
 title: "Implement Go Ollama runner"
 id: "01kkx54rn"
-status: pending
+status: completed
 priority: medium
 type: feature
 tags: ["go", "ollama"]
