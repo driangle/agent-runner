@@ -61,6 +61,7 @@ function start(
     resolveResult = resolve;
     rejectResult = reject;
   });
+  resultPromise.catch(() => {}); // Prevent unhandled rejection on abandon.
 
   async function* messageGenerator(): AsyncGenerator<Message> {
     try {

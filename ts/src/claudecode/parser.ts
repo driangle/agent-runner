@@ -1,4 +1,9 @@
-import type { StreamMessage, StreamEventInner } from "./types.js";
+import type {
+  StreamMessage,
+  AssistantStreamMessage,
+  StreamEventStreamMessage,
+  StreamEventInner,
+} from "./types.js";
 
 /**
  * Type guard that validates a parsed JSON value has the minimum shape
@@ -17,12 +22,12 @@ function isStreamMessageShape(
 
 /**
  * Parse a single JSON line from Claude Code's stream-json output
- * into a typed StreamMessage. Unknown fields are silently ignored for
+ * into a typed StreamMessage. Unknown fields are preserved for
  * forward compatibility.
  *
  * For assistant-type lines, content blocks are lifted from the nested
- * "message" wrapper into StreamMessage.content for convenient access.
- * For stream_event lines, the inner event is parsed into StreamMessage.event.
+ * "message" wrapper into content for convenient access.
+ * For stream_event lines, the inner event is parsed into event.
  */
 export function parse(line: string): StreamMessage {
   const raw: unknown = JSON.parse(line);
@@ -31,28 +36,25 @@ export function parse(line: string): StreamMessage {
     throw new SyntaxError("not a valid stream message: missing type field");
   }
 
-  const msg: StreamMessage = {
-    ...(raw as unknown as StreamMessage),
-    content: [], // Default; overridden below for assistant messages.
-  };
+  switch (raw.type) {
+    case "assistant": {
+      const msg = raw as unknown as AssistantStreamMessage;
+      msg.content = msg.message?.content ?? [];
+      return msg;
+    }
 
-  switch (msg.type) {
-    case "assistant":
-      if (msg.message?.content) {
-        msg.content = msg.message.content;
-      }
-      break;
-
-    case "stream_event":
+    case "stream_event": {
+      const msg = raw as unknown as StreamEventStreamMessage;
       if (raw.event != null && typeof raw.event === "object") {
-        // Parse inner event — gracefully skip if it doesn't have a type.
         const inner = raw.event as Record<string, unknown>;
         if (typeof inner.type === "string") {
           msg.event = inner as unknown as StreamEventInner;
         }
       }
-      break;
-  }
+      return msg;
+    }
 
-  return msg;
+    default:
+      return raw as unknown as StreamMessage;
+  }
 }

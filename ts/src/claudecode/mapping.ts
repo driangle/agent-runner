@@ -1,27 +1,9 @@
-import type { Result, MessageType, Usage } from "../types.js";
-import type { StreamMessage } from "./types.js";
+import type { Result, Usage } from "../types.js";
+import type { ResultStreamMessage } from "./types.js";
 
-/** Map Claude stream-json type to common MessageType. */
-export function mapMessageType(type: string): MessageType {
-  switch (type) {
-    case "system":
-      return "system";
-    case "assistant":
-      return "assistant";
-    case "user":
-      return "user";
-    case "result":
-      return "result";
-    case "stream_event":
-      return "stream_event";
-    default:
-      return type;
-  }
-}
-
-/** Map a StreamMessage result to a common Result. */
+/** Map a ResultStreamMessage to a common Result. */
 export function mapResult(
-  msg: StreamMessage,
+  msg: ResultStreamMessage,
   fallbackSessionId: string,
 ): Result {
   const usage: Usage = {

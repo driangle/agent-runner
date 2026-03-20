@@ -3,10 +3,10 @@ import { once } from "node:events";
 import type { Runner, Result, Message, Session } from "../types.js";
 import { NotFoundError, NonZeroExitError, NoResultError, NotSupportedError } from "../errors.js";
 import type { ClaudeRunnerConfig, ClaudeRunOptions, SpawnFn } from "./options.js";
-import type { StreamMessage } from "./types.js";
+import type { StreamMessage, ResultStreamMessage } from "./types.js";
 import { parse } from "./parser.js";
 import { buildArgs } from "./args.js";
-import { mapMessageType, mapResult } from "./mapping.js";
+import { mapResult } from "./mapping.js";
 import { combinedSignal, abortError } from "../signal.js";
 import { logCmd, resolveSpawn, collectErrorDetail } from "./process.js";
 
@@ -46,9 +46,11 @@ function start(
 
   if (!child.stdout) {
     const err = new NotFoundError(`failed to start ${binary}: no stdout`);
+    const rejected = Promise.reject(err);
+    rejected.catch(() => {}); // Prevent unhandled rejection on abandon.
     return {
       messages: (async function* () {})(),
-      result: Promise.reject(err),
+      result: rejected,
       abort: () => {},
       send: () => {
         throw new NotSupportedError("send is not yet supported");
@@ -65,7 +67,7 @@ function start(
   const stdoutErrors: string[] = [];
 
   let initSessionId = "";
-  let resultMsg: StreamMessage | undefined;
+  let resultMsg: ResultStreamMessage | undefined;
 
   // Result promise that resolves when the process completes.
   let resolveResult: (value: Result) => void;
@@ -74,6 +76,7 @@ function start(
     resolveResult = resolve;
     rejectResult = reject;
   });
+  resultPromise.catch(() => {}); // Prevent unhandled rejection on abandon.
 
   async function* messageGenerator(): AsyncGenerator<Message> {
     try {
@@ -95,11 +98,11 @@ function start(
           initSessionId = parsed.session_id;
         }
         if (parsed.type === "result") {
-          resultMsg = parsed;
+          resultMsg = parsed as ResultStreamMessage;
         }
 
         const msg: Message = {
-          type: mapMessageType(parsed.type),
+          type: parsed.type,
           raw: line,
           data: parsed,
         };

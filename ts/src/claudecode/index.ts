@@ -12,6 +12,13 @@ export type {
 
 export type {
   StreamMessage,
+  SystemStreamMessage,
+  AssistantStreamMessage,
+  UserStreamMessage,
+  ResultStreamMessage,
+  StreamEventStreamMessage,
+  RateLimitStreamMessage,
+  UnknownStreamMessage,
   AssistantMessage,
   ContentBlock,
   StreamEventInner,
