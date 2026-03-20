@@ -21,8 +21,8 @@ import (
 	"os"
 	"time"
 
-	agentrunner "github.com/driangle/agent-runner/go"
-	"github.com/driangle/agent-runner/go/claudecode"
+	"github.com/driangle/agent-runner/agentrunner"
+	"github.com/driangle/agent-runner/agentrunner/claudecode"
 )
 
 func main() {
@@ -92,36 +92,38 @@ func exampleSimpleRun(ctx context.Context, runner *claudecode.Runner) error {
 	fmt.Printf("Response: %s\n", result.Text)
 	fmt.Printf("Cost:     $%.4f\n", result.CostUSD)
 	fmt.Printf("Tokens:   %d in / %d out\n", result.Usage.InputTokens, result.Usage.OutputTokens)
-	fmt.Printf("Duration: %dms\n", result.DurationMs)
+	fmt.Printf("Duration: %s\n", result.Duration)
 	fmt.Printf("Session:  %s\n", result.SessionID)
 	fmt.Printf("Error:    %v\n", result.IsError)
 	fmt.Printf("Exit:     %d\n", result.ExitCode)
 	return nil
 }
 
-// exampleStreaming uses RunStream to print messages as they arrive.
+// exampleStreaming uses Start to stream messages as they arrive.
 func exampleStreaming(ctx context.Context, runner *claudecode.Runner, verbose bool) error {
 	prompt := "List 3 fun facts about Go (the programming language). Be brief."
 	fmt.Printf("Prompt: %s\n", prompt)
 	fmt.Println("---")
 
-	msgCh, errCh := runner.RunStream(ctx, prompt,
+	session, err := runner.Start(ctx, prompt,
 		agentrunner.WithMaxTurns(1),
 		agentrunner.WithTimeout(30*time.Second),
-		claudecode.WithIncludePartialMessages(true),
+		claudecode.WithIncludePartialMessages(),
 	)
+	if err != nil {
+		return err
+	}
 
 	var model string
 
-	for msg := range msgCh {
+	for msg := range session.Messages {
 		switch msg.Type {
 		case agentrunner.MessageTypeSystem:
 			if verbose {
 				fmt.Printf("[system] %s\n", msg.Raw)
 			}
-			parsed, parseErr := claudecode.Parse(msg.Raw)
-			if parseErr == nil && parsed.Model != "" {
-				model = parsed.Model
+			if sm, ok := claudecode.ParseMessage(msg); ok && sm.Model != "" {
+				model = sm.Model
 			}
 		case agentrunner.MessageTypeAssistant:
 			// With --include-partial-messages, the CLI emits two kinds of
@@ -130,33 +132,33 @@ func exampleStreaming(ctx context.Context, runner *claudecode.Runner, verbose bo
 			//   2. assistant — full accumulated message (arrives at the end)
 			// Print deltas for real-time streaming; skip the final assistant
 			// message to avoid duplicating the output.
-			parsed, parseErr := claudecode.Parse(msg.Raw)
-			if parseErr != nil {
+			sm, ok := claudecode.ParseMessage(msg)
+			if !ok {
 				continue
 			}
-			if parsed.Type == "stream_event" && parsed.Event != nil &&
-				parsed.Event.Delta != nil && parsed.Event.Delta.Type == "text_delta" {
-				fmt.Print(parsed.Event.Delta.Text)
+			if sm.Type == "stream_event" && sm.Event != nil &&
+				sm.Event.Delta != nil && sm.Event.Delta.Type == "text_delta" {
+				fmt.Print(sm.Event.Delta.Text)
 			}
 		case agentrunner.MessageTypeResult:
-			parsed, parseErr := claudecode.Parse(msg.Raw)
-			if parseErr != nil {
+			sm, ok := claudecode.ParseMessage(msg)
+			if !ok {
 				continue
 			}
-			if parsed.Model != "" {
-				model = parsed.Model
+			if sm.Model != "" {
+				model = sm.Model
 			}
 			fmt.Println("\n---")
-			fmt.Printf("Cost:     $%.4f\n", parsed.TotalCostUSD)
-			fmt.Printf("Duration: %dms\n", parsed.DurationMs)
-			fmt.Printf("Turns:    %d\n", parsed.NumTurns)
+			fmt.Printf("Cost:     $%.4f\n", sm.TotalCostUSD)
+			fmt.Printf("Duration: %dms\n", sm.DurationMs)
+			fmt.Printf("Turns:    %d\n", sm.NumTurns)
 			fmt.Printf("Model:    %s\n", model)
-			fmt.Printf("Session:  %s\n", parsed.SessionID)
-			fmt.Printf("Error:    %v\n", parsed.IsError)
+			fmt.Printf("Session:  %s\n", sm.SessionID)
+			fmt.Printf("Error:    %v\n", sm.IsError)
 		}
 	}
 
-	if err := <-errCh; err != nil {
+	if _, err := session.Result(); err != nil {
 		return err
 	}
 	return nil
@@ -204,10 +206,13 @@ func exampleSession(ctx context.Context, runner *claudecode.Runner) error {
 	prompt := "What is the capital of France? Reply with just the city name."
 	fmt.Printf("Prompt: %s\n", prompt)
 
-	session := runner.Start(ctx, prompt,
+	session, err := runner.Start(ctx, prompt,
 		agentrunner.WithMaxTurns(1),
 		agentrunner.WithTimeout(30*time.Second),
 	)
+	if err != nil {
+		return err
+	}
 
 	// Iterate messages as they arrive.
 	for msg := range session.Messages {
