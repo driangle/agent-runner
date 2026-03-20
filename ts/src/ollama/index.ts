@@ -1,4 +1,10 @@
 export { createOllamaRunner } from "./runner.js";
+export {
+  messageText,
+  messageThinking,
+  messageIsResult,
+} from "./accessors.js";
+export type { OllamaMessage } from "./accessors.js";
 
 export type { OnMessageFn, Logger } from "../types.js";
 

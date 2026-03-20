@@ -2,6 +2,7 @@ import { createInterface } from "node:readline";
 import { Readable } from "node:stream";
 import type { Runner, Result, Message, Session, Usage } from "../types.js";
 import {
+  RunnerError,
   NotFoundError,
   TimeoutError,
   CancelledError,
@@ -223,8 +224,12 @@ function buildRequestBody(
 ): ChatRequest {
   const messages = buildMessages(prompt, options);
 
+  if (!options.model) {
+    throw new RunnerError("model is required for Ollama runner");
+  }
+
   const req: ChatRequest = {
-    model: options.model ?? "",
+    model: options.model,
     messages,
     stream: true,
   };

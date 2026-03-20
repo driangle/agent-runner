@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -299,6 +300,39 @@ func (r *Runner) Run(ctx context.Context, prompt string, opts ...agentrunner.Opt
 	return session.Result()
 }
 
+// RunStream executes a prompt against the Claude Code CLI and streams parsed
+// messages as they arrive. It delegates to Start and returns the session's
+// message channel. The error channel receives at most one error (the session
+// result error, if any) and is then closed.
+func (r *Runner) RunStream(ctx context.Context, prompt string, opts ...agentrunner.Option) (<-chan agentrunner.Message, <-chan error) {
+	session, err := r.Start(ctx, prompt, opts...)
+
+	errCh := make(chan error, 1)
+
+	if err != nil {
+		errCh <- err
+		close(errCh)
+		ch := make(chan agentrunner.Message)
+		close(ch)
+		return ch, errCh
+	}
+
+	go func() {
+		defer close(errCh)
+		// KeepAlive prevents the GC from finalizing the session (which calls
+		// Abort and cancels the context) while we are blocked on Result().
+		defer runtime.KeepAlive(session)
+		result, err := session.Result()
+		if err != nil {
+			errCh <- err
+		} else if result != nil && result.IsError {
+			// Not a library error — just an error result from the CLI.
+			// Don't send on errCh; caller reads it from the result message.
+		}
+	}()
+
+	return session.Messages, errCh
+}
 // mapMessageType maps a Claude stream-json type string to the common MessageType.
 func mapMessageType(typ string) agentrunner.MessageType {
 	switch typ {

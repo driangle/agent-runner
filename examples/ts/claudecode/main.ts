@@ -11,9 +11,8 @@
 //   npx tsx main.ts --binary /path/to/claude
 
 import { parseArgs } from "node:util";
-import { createClaudeRunner } from "agentrunner/claudecode";
-import type { ClaudeRunOptions } from "agentrunner/claudecode";
-import type { StreamMessage } from "agentrunner/claudecode";
+import { createClaudeRunner, messageTextDelta } from "agentrunner/claudecode";
+import type { ClaudeRunOptions, ClaudeMessage, ResultStreamMessage, SystemStreamMessage } from "agentrunner/claudecode";
 import type { Runner } from "agentrunner";
 
 const { values } = parseArgs({
@@ -91,31 +90,33 @@ async function exampleStreaming(runner: Runner<ClaudeRunOptions>, verbose: boole
   let model = "unknown";
 
   for await (const msg of stream) {
-    const data = msg.data as StreamMessage;
+    const cm = msg as ClaudeMessage;
 
     switch (msg.type) {
       case "system": {
         if (verbose) console.log(`[system] ${msg.raw}`);
-        if (data.model) model = data.model;
+        const sys = cm.data as SystemStreamMessage;
+        if (sys.model) model = sys.model;
         break;
       }
       case "stream_event": {
         // With --include-partial-messages, stream_event messages carry
         // real-time text deltas via content_block_delta events.
-        const delta = data.event?.delta;
-        if (delta?.type === "text_delta" && delta.text) {
-          process.stdout.write(delta.text);
+        const text = messageTextDelta(cm);
+        if (text) {
+          process.stdout.write(text);
         }
         break;
       }
       case "result": {
+        const result = cm.data as ResultStreamMessage;
         console.log("\n---");
-        console.log(`Cost:     $${(data.total_cost_usd ?? 0).toFixed(4)}`);
-        console.log(`Duration: ${data.duration_ms ?? 0}ms`);
-        console.log(`Turns:    ${data.num_turns ?? 0}`);
-        console.log(`Model:    ${data.model ?? model}`);
-        console.log(`Session:  ${data.session_id ?? ""}`);
-        console.log(`Error:    ${data.is_error ?? false}`);
+        console.log(`Cost:     $${(result.total_cost_usd ?? 0).toFixed(4)}`);
+        console.log(`Duration: ${result.duration_ms ?? 0}ms`);
+        console.log(`Turns:    ${result.num_turns ?? 0}`);
+        console.log(`Model:    ${result.model ?? model}`);
+        console.log(`Session:  ${result.session_id ?? ""}`);
+        console.log(`Error:    ${result.is_error ?? false}`);
         break;
       }
     }

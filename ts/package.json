@@ -19,6 +19,7 @@
       "import": "./dist/ollama/index.js"
     }
   },
+  "sideEffects": false,
   "files": ["dist"],
   "scripts": {
     "build": "tsc",

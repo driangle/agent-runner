@@ -48,7 +48,7 @@ export interface ClaudeRunOptions extends RunOptions {
   resume?: string;
 
   /** Continue the most recent session. */
-  continue?: boolean;
+  continueSession?: boolean;
 
   /** Specific session ID for the conversation. */
   sessionId?: string;

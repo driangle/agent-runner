@@ -62,7 +62,7 @@ describe("buildArgs", () => {
   });
 
   it("includes --continue flag", () => {
-    const args = buildArgs("test", { continue: true });
+    const args = buildArgs("test", { continueSession: true });
     expect(args).toContain("--continue");
   });
 

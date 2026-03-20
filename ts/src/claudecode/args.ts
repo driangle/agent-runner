@@ -9,7 +9,7 @@ export function buildArgs(
     "--print",
     "--output-format",
     "stream-json",
-    "--verbose",
+    "--verbose", // Required with stream-json to get full message output.
   ];
 
   // Common options.
@@ -52,7 +52,7 @@ export function buildArgs(
   if (options.resume) {
     args.push("--resume", options.resume);
   }
-  if (options.continue) {
+  if (options.continueSession) {
     args.push("--continue");
   }
   if (options.sessionId) {

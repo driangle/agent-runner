@@ -1,6 +1,17 @@
 export { createClaudeRunner } from "./runner.js";
 export { parse } from "./parser.js";
 export { buildArgs } from "./args.js";
+export {
+  messageText,
+  messageThinking,
+  messageToolName,
+  messageToolInput,
+  messageToolOutput,
+  messageIsError,
+  messageTextDelta,
+  messageThinkingDelta,
+} from "./accessors.js";
+export type { ClaudeMessage } from "./accessors.js";
 
 export type { OnMessageFn, Logger } from "../types.js";
 

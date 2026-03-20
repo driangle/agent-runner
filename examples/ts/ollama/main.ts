@@ -11,8 +11,8 @@
 //   npx tsx main.ts --model codellama --base-url http://localhost:11434
 
 import { parseArgs } from "node:util";
-import { createOllamaRunner } from "agentrunner/ollama";
-import type { OllamaRunOptions, ChatResponse } from "agentrunner/ollama";
+import { createOllamaRunner, messageText, messageThinking } from "agentrunner/ollama";
+import type { OllamaRunOptions, OllamaMessage } from "agentrunner/ollama";
 import type { Runner } from "agentrunner";
 
 const { values } = parseArgs({
@@ -91,12 +91,14 @@ async function exampleStreaming(runner: Runner<OllamaRunOptions>, model: string)
   };
 
   for await (const msg of runner.runStream(prompt, options)) {
-    const chunk = msg.data as ChatResponse;
+    const om = msg as OllamaMessage;
     if (msg.type === "assistant") {
-      if (chunk.message.content) {
-        process.stdout.write(chunk.message.content);
+      const text = messageText(om);
+      if (text) {
+        process.stdout.write(text);
       }
     } else if (msg.type === "result") {
+      const chunk = om.data;
       console.log("\n---");
       console.log(
         `Duration: ${chunk.total_duration ? Math.floor(chunk.total_duration / 1e6) : 0}ms`,
@@ -123,13 +125,15 @@ async function exampleThinking(runner: Runner<OllamaRunOptions>, model: string) 
   for await (const msg of runner.runStream(prompt, options)) {
     if (msg.type !== "assistant") continue;
 
-    const chunk = msg.data as ChatResponse;
-    if (chunk.message.thinking) {
+    const om = msg as OllamaMessage;
+    const thinking = messageThinking(om);
+    if (thinking) {
       // Dim text for thinking output.
-      process.stdout.write(`\x1b[2m${chunk.message.thinking}\x1b[0m`);
+      process.stdout.write(`\x1b[2m${thinking}\x1b[0m`);
     }
-    if (chunk.message.content) {
-      process.stdout.write(chunk.message.content);
+    const text = messageText(om);
+    if (text) {
+      process.stdout.write(text);
     }
   }
   console.log("\n---");
@@ -147,9 +151,9 @@ async function exampleSession(runner: Runner<OllamaRunOptions>, model: string) {
   for await (const msg of session.messages) {
     count++;
     if (msg.type === "assistant") {
-      const chunk = msg.data as ChatResponse;
-      if (chunk.message.content) {
-        process.stdout.write(chunk.message.content);
+      const text = messageText(msg as OllamaMessage);
+      if (text) {
+        process.stdout.write(text);
       }
     }
   }
