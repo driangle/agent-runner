@@ -1,6 +1,6 @@
 package ollama
 
-import agentrunner "github.com/driangle/agent-runner/go"
+import "github.com/driangle/agent-runner/agentrunner"
 
 // OllamaOptions holds Ollama-specific configuration that extends the common Options.
 type OllamaOptions struct {
@@ -113,27 +113,23 @@ type OnMessageFunc func(agentrunner.Message)
 type onMessageKey struct{}
 
 // WithOnMessage sets a callback that is invoked for each streaming message
-// during RunStream. The callback is called before the message is sent on the
+// during Start/Run. The callback is called before the message is sent on the
 // channel, so it can be used for logging, progress display, etc.
 func WithOnMessage(fn OnMessageFunc) agentrunner.Option {
 	return func(o *agentrunner.Options) {
-		if o.Extra == nil {
-			o.Extra = make(map[any]any)
-		}
-		o.Extra[onMessageKey{}] = fn
+		o.SetExtra(onMessageKey{}, fn)
 	}
 }
 
 // GetOnMessage extracts the OnMessage callback from resolved Options.
 // Returns nil if no callback was set.
 func GetOnMessage(o *agentrunner.Options) OnMessageFunc {
-	if o.Extra == nil {
+	v, ok := o.GetExtra(onMessageKey{})
+	if !ok {
 		return nil
 	}
-	if v, ok := o.Extra[onMessageKey{}]; ok {
-		if fn, ok := v.(OnMessageFunc); ok {
-			return fn
-		}
+	if fn, ok := v.(OnMessageFunc); ok {
+		return fn
 	}
 	return nil
 }
@@ -142,26 +138,21 @@ type ollamaOptsKey struct{}
 
 // getOllamaOpts retrieves or initializes OllamaOptions from the common Options.
 func getOllamaOpts(o *agentrunner.Options) *OllamaOptions {
-	if o.Extra == nil {
-		o.Extra = make(map[any]any)
-	}
-	key := ollamaOptsKey{}
-	if v, ok := o.Extra[key]; ok {
+	v, ok := o.GetExtra(ollamaOptsKey{})
+	if ok {
 		return v.(*OllamaOptions)
 	}
 	opts := &OllamaOptions{}
-	o.Extra[key] = opts
+	o.SetExtra(ollamaOptsKey{}, opts)
 	return opts
 }
 
 // GetOllamaOptions extracts Ollama-specific options from resolved Options.
 // Returns nil if no Ollama-specific options were set.
 func GetOllamaOptions(o *agentrunner.Options) *OllamaOptions {
-	if o.Extra == nil {
+	v, ok := o.GetExtra(ollamaOptsKey{})
+	if !ok {
 		return nil
 	}
-	if v, ok := o.Extra[ollamaOptsKey{}]; ok {
-		return v.(*OllamaOptions)
-	}
-	return nil
+	return v.(*OllamaOptions)
 }

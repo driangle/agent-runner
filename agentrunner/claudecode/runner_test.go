@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	agentrunner "github.com/driangle/agent-runner/go"
+	"github.com/driangle/agent-runner/agentrunner"
 )
 
 // helperProcess is invoked when the test binary is re-executed with
@@ -55,9 +55,9 @@ func TestHelperProcess(t *testing.T) {
 	os.Exit(0)
 }
 
-// helperBuilder returns a CommandBuilder that re-executes the test binary
+// helperBuilder returns a commandBuilder that re-executes the test binary
 // as a helper process with the given mode.
-func helperBuilder(mode string) CommandBuilder {
+func helperBuilder(mode string) commandBuilder {
 	return func(ctx context.Context, name string, args ...string) *exec.Cmd {
 		cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestHelperProcess$")
 		cmd.Env = append(os.Environ(),
@@ -71,7 +71,7 @@ func helperBuilder(mode string) CommandBuilder {
 // --- Run tests (delegate to Start) ---
 
 func TestRunHappyPath(t *testing.T) {
-	r := NewRunner(WithCommandBuilder(helperBuilder("happy")))
+	r := NewRunner(withCommandBuilder(helperBuilder("happy")))
 	result, err := r.Run(context.Background(), "say hello")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -85,8 +85,8 @@ func TestRunHappyPath(t *testing.T) {
 	if result.CostUSD != 0.05 {
 		t.Errorf("cost = %f, want 0.05", result.CostUSD)
 	}
-	if result.DurationMs != 1234 {
-		t.Errorf("duration_ms = %d, want 1234", result.DurationMs)
+	if result.Duration != 1234*time.Millisecond {
+		t.Errorf("duration = %v, want %v", result.Duration, 1234*time.Millisecond)
 	}
 	if result.IsError {
 		t.Error("is_error = true, want false")
@@ -106,7 +106,7 @@ func TestRunHappyPath(t *testing.T) {
 }
 
 func TestRunErrorResult(t *testing.T) {
-	r := NewRunner(WithCommandBuilder(helperBuilder("error_result")))
+	r := NewRunner(withCommandBuilder(helperBuilder("error_result")))
 	result, err := r.Run(context.Background(), "fail please")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -123,7 +123,7 @@ func TestRunErrorResult(t *testing.T) {
 }
 
 func TestRunNoResult(t *testing.T) {
-	r := NewRunner(WithCommandBuilder(helperBuilder("no_result")))
+	r := NewRunner(withCommandBuilder(helperBuilder("no_result")))
 	_, err := r.Run(context.Background(), "hello")
 	if err != agentrunner.ErrNoResult {
 		t.Errorf("err = %v, want ErrNoResult", err)
@@ -131,7 +131,7 @@ func TestRunNoResult(t *testing.T) {
 }
 
 func TestRunNonZeroExit(t *testing.T) {
-	r := NewRunner(WithCommandBuilder(helperBuilder("nonzero_exit")))
+	r := NewRunner(withCommandBuilder(helperBuilder("nonzero_exit")))
 	_, err := r.Run(context.Background(), "hello")
 	if err == nil {
 		t.Fatal("expected error")
@@ -145,7 +145,7 @@ func TestRunNonZeroExit(t *testing.T) {
 }
 
 func TestRunTimeout(t *testing.T) {
-	r := NewRunner(WithCommandBuilder(helperBuilder("slow")))
+	r := NewRunner(withCommandBuilder(helperBuilder("slow")))
 	_, err := r.Run(context.Background(), "hello", agentrunner.WithTimeout(100*time.Millisecond))
 	if err != agentrunner.ErrTimeout {
 		t.Errorf("err = %v, want ErrTimeout", err)
@@ -154,7 +154,7 @@ func TestRunTimeout(t *testing.T) {
 
 func TestRunCancelled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	r := NewRunner(WithCommandBuilder(helperBuilder("slow")))
+	r := NewRunner(withCommandBuilder(helperBuilder("slow")))
 
 	done := make(chan error, 1)
 	go func() {
@@ -173,7 +173,7 @@ func TestRunCancelled(t *testing.T) {
 }
 
 func TestRunSessionIDFromInit(t *testing.T) {
-	r := NewRunner(WithCommandBuilder(helperBuilder("init_session_only")))
+	r := NewRunner(withCommandBuilder(helperBuilder("init_session_only")))
 	result, err := r.Run(context.Background(), "hello")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -286,7 +286,7 @@ func TestBuildArgsSessionID(t *testing.T) {
 
 func TestBuildArgsContinue(t *testing.T) {
 	opts := &agentrunner.Options{}
-	WithContinue(true)(opts)
+	WithContinue()(opts)
 	args := buildArgs("test", opts, false)
 
 	found := false
@@ -302,7 +302,7 @@ func TestBuildArgsContinue(t *testing.T) {
 
 func TestBuildArgsIncludePartialMessages(t *testing.T) {
 	opts := &agentrunner.Options{}
-	WithIncludePartialMessages(true)(opts)
+	WithIncludePartialMessages()(opts)
 	args := buildArgs("test", opts, false)
 
 	found := false
@@ -316,213 +316,14 @@ func TestBuildArgsIncludePartialMessages(t *testing.T) {
 	}
 }
 
-// --- RunStream tests ---
-
-func TestRunStreamHappyPath(t *testing.T) {
-	r := NewRunner(WithCommandBuilder(helperBuilder("stream_multi")))
-	msgCh, errCh := r.RunStream(context.Background(), "say hello")
-
-	var messages []agentrunner.Message
-	for msg := range msgCh {
-		messages = append(messages, msg)
-	}
-
-	err := <-errCh
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if len(messages) != 5 {
-		t.Fatalf("got %d messages, want 5", len(messages))
-	}
-
-	// First message should be system.
-	if messages[0].Type != agentrunner.MessageTypeSystem {
-		t.Errorf("messages[0].Type = %q, want %q", messages[0].Type, agentrunner.MessageTypeSystem)
-	}
-
-	// Last message should be result.
-	last := messages[len(messages)-1]
-	if last.Type != agentrunner.MessageTypeResult {
-		t.Errorf("last message type = %q, want %q", last.Type, agentrunner.MessageTypeResult)
-	}
-
-	// Middle messages should be assistant (stream_event maps to assistant).
-	for _, msg := range messages[1 : len(messages)-1] {
-		if msg.Type != agentrunner.MessageTypeAssistant {
-			t.Errorf("intermediate message type = %q, want %q", msg.Type, agentrunner.MessageTypeAssistant)
-		}
-	}
-}
-
-func TestRunStreamMessageOrdering(t *testing.T) {
-	r := NewRunner(WithCommandBuilder(helperBuilder("stream_multi")))
-	msgCh, errCh := r.RunStream(context.Background(), "test ordering")
-
-	var types []agentrunner.MessageType
-	for msg := range msgCh {
-		types = append(types, msg.Type)
-	}
-
-	if err := <-errCh; err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	// Verify result is always last.
-	if len(types) == 0 {
-		t.Fatal("no messages received")
-	}
-	if types[len(types)-1] != agentrunner.MessageTypeResult {
-		t.Errorf("last type = %q, want %q", types[len(types)-1], agentrunner.MessageTypeResult)
-	}
-
-	// Verify system is first.
-	if types[0] != agentrunner.MessageTypeSystem {
-		t.Errorf("first type = %q, want %q", types[0], agentrunner.MessageTypeSystem)
-	}
-}
-
-func TestRunStreamChannelClosure(t *testing.T) {
-	r := NewRunner(WithCommandBuilder(helperBuilder("stream_no_result")))
-	msgCh, errCh := r.RunStream(context.Background(), "partial")
-
-	// Drain messages.
-	var count int
-	for range msgCh {
-		count++
-	}
-
-	// Channel should be closed even without result message.
-	if count != 2 {
-		t.Errorf("got %d messages, want 2", count)
-	}
-
-	// No error expected — process exits cleanly, just no result message.
-	if err := <-errCh; err != nil {
-		t.Logf("got error (acceptable): %v", err)
-	}
-}
-
-func TestRunStreamTimeout(t *testing.T) {
-	r := NewRunner(WithCommandBuilder(helperBuilder("slow")))
-	msgCh, errCh := r.RunStream(context.Background(), "hello",
-		agentrunner.WithTimeout(100*time.Millisecond))
-
-	// Drain messages.
-	for range msgCh {
-	}
-
-	err := <-errCh
-	if err != agentrunner.ErrTimeout {
-		t.Errorf("err = %v, want ErrTimeout", err)
-	}
-}
-
-func TestRunStreamCancelled(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	r := NewRunner(WithCommandBuilder(helperBuilder("slow")))
-	msgCh, errCh := r.RunStream(ctx, "hello")
-
-	// Give the process a moment to start, then cancel.
-	time.Sleep(50 * time.Millisecond)
-	cancel()
-
-	// Drain messages.
-	for range msgCh {
-	}
-
-	err := <-errCh
-	if err != agentrunner.ErrCancelled {
-		t.Errorf("err = %v, want ErrCancelled", err)
-	}
-}
-
-func TestRunStreamNonZeroExit(t *testing.T) {
-	r := NewRunner(WithCommandBuilder(helperBuilder("nonzero_exit")))
-	msgCh, errCh := r.RunStream(context.Background(), "hello")
-
-	// Drain messages.
-	for range msgCh {
-	}
-
-	err := <-errCh
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	if !errors.Is(err, agentrunner.ErrNonZeroExit) {
-		t.Errorf("err = %v, want ErrNonZeroExit", err)
-	}
-}
-
-func TestRunStreamNotFound(t *testing.T) {
-	r := NewRunner(WithBinary("nonexistent-binary-xyz"))
-	msgCh, errCh := r.RunStream(context.Background(), "hello")
-
-	// Drain messages.
-	for range msgCh {
-	}
-
-	err := <-errCh
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	if !errors.Is(err, agentrunner.ErrNotFound) {
-		t.Errorf("err = %v, want ErrNotFound", err)
-	}
-}
-
-func TestRunStreamOnMessageCallback(t *testing.T) {
-	r := NewRunner(WithCommandBuilder(helperBuilder("stream_multi")))
-
-	var callbackMessages []agentrunner.Message
-	msgCh, errCh := r.RunStream(context.Background(), "test callback",
-		WithOnMessage(func(msg agentrunner.Message) {
-			callbackMessages = append(callbackMessages, msg)
-		}),
-	)
-
-	var channelMessages []agentrunner.Message
-	for msg := range msgCh {
-		channelMessages = append(channelMessages, msg)
-	}
-
-	if err := <-errCh; err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	// Callback should have received the same messages as the channel.
-	if len(callbackMessages) != len(channelMessages) {
-		t.Fatalf("callback got %d messages, channel got %d", len(callbackMessages), len(channelMessages))
-	}
-
-	for i := range callbackMessages {
-		if callbackMessages[i].Type != channelMessages[i].Type {
-			t.Errorf("message[%d]: callback type %q != channel type %q",
-				i, callbackMessages[i].Type, channelMessages[i].Type)
-		}
-	}
-}
-
-func TestRunStreamRawJSON(t *testing.T) {
-	r := NewRunner(WithCommandBuilder(helperBuilder("stream_multi")))
-	msgCh, errCh := r.RunStream(context.Background(), "test raw")
-
-	for msg := range msgCh {
-		if len(msg.Raw) == 0 {
-			t.Errorf("message type %q has empty Raw field", msg.Type)
-		}
-	}
-
-	if err := <-errCh; err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-// --- Session (Start) tests ---
+// --- Start/Session tests ---
 
 func TestStartHappyPath(t *testing.T) {
-	r := NewRunner(WithCommandBuilder(helperBuilder("happy")))
-	session := r.Start(context.Background(), "say hello")
+	r := NewRunner(withCommandBuilder(helperBuilder("happy")))
+	session, err := r.Start(context.Background(), "say hello")
+	if err != nil {
+		t.Fatalf("unexpected start error: %v", err)
+	}
 
 	var messages []agentrunner.Message
 	for msg := range session.Messages {
@@ -548,8 +349,11 @@ func TestStartHappyPath(t *testing.T) {
 }
 
 func TestStartAbortMidStream(t *testing.T) {
-	r := NewRunner(WithCommandBuilder(helperBuilder("slow")))
-	session := r.Start(context.Background(), "long task")
+	r := NewRunner(withCommandBuilder(helperBuilder("slow")))
+	session, err := r.Start(context.Background(), "long task")
+	if err != nil {
+		t.Fatalf("unexpected start error: %v", err)
+	}
 
 	// Give the process a moment to start, then abort.
 	time.Sleep(50 * time.Millisecond)
@@ -559,15 +363,18 @@ func TestStartAbortMidStream(t *testing.T) {
 	for range session.Messages {
 	}
 
-	_, err := session.Result()
+	_, err = session.Result()
 	if err != agentrunner.ErrCancelled {
 		t.Errorf("err = %v, want ErrCancelled", err)
 	}
 }
 
 func TestStartMessagesAndResult(t *testing.T) {
-	r := NewRunner(WithCommandBuilder(helperBuilder("stream_multi")))
-	session := r.Start(context.Background(), "test session")
+	r := NewRunner(withCommandBuilder(helperBuilder("stream_multi")))
+	session, err := r.Start(context.Background(), "test session")
+	if err != nil {
+		t.Fatalf("unexpected start error: %v", err)
+	}
 
 	var types []agentrunner.MessageType
 	for msg := range session.Messages {
@@ -595,26 +402,32 @@ func TestStartMessagesAndResult(t *testing.T) {
 }
 
 func TestStartTimeout(t *testing.T) {
-	r := NewRunner(WithCommandBuilder(helperBuilder("slow")))
-	session := r.Start(context.Background(), "hello",
+	r := NewRunner(withCommandBuilder(helperBuilder("slow")))
+	session, err := r.Start(context.Background(), "hello",
 		agentrunner.WithTimeout(100*time.Millisecond))
+	if err != nil {
+		t.Fatalf("unexpected start error: %v", err)
+	}
 
 	for range session.Messages {
 	}
 
-	_, err := session.Result()
+	_, err = session.Result()
 	if err != agentrunner.ErrTimeout {
 		t.Errorf("err = %v, want ErrTimeout", err)
 	}
 }
 
 func TestStartSendNotSupported(t *testing.T) {
-	r := NewRunner(WithCommandBuilder(helperBuilder("happy")))
-	session := r.Start(context.Background(), "hello")
+	r := NewRunner(withCommandBuilder(helperBuilder("happy")))
+	session, err := r.Start(context.Background(), "hello")
+	if err != nil {
+		t.Fatalf("unexpected start error: %v", err)
+	}
 
-	err := session.Send("test input")
-	if err != agentrunner.ErrNotSupported {
-		t.Errorf("err = %v, want ErrNotSupported", err)
+	sendErr := session.Send("test input")
+	if sendErr != agentrunner.ErrNotSupported {
+		t.Errorf("err = %v, want ErrNotSupported", sendErr)
 	}
 
 	// Drain to avoid goroutine leak.
@@ -625,17 +438,148 @@ func TestStartSendNotSupported(t *testing.T) {
 
 func TestStartNotFound(t *testing.T) {
 	r := NewRunner(WithBinary("nonexistent-binary-xyz"))
-	session := r.Start(context.Background(), "hello")
-
-	// Drain messages (should be none).
-	for range session.Messages {
-	}
-
-	_, err := session.Result()
+	_, err := r.Start(context.Background(), "hello")
 	if err == nil {
 		t.Fatal("expected error")
 	}
 	if !errors.Is(err, agentrunner.ErrNotFound) {
 		t.Errorf("err = %v, want ErrNotFound", err)
+	}
+}
+
+func TestStartOnMessageCallback(t *testing.T) {
+	r := NewRunner(withCommandBuilder(helperBuilder("stream_multi")))
+
+	var callbackMessages []agentrunner.Message
+	session, err := r.Start(context.Background(), "test callback",
+		WithOnMessage(func(msg agentrunner.Message) {
+			callbackMessages = append(callbackMessages, msg)
+		}),
+	)
+	if err != nil {
+		t.Fatalf("unexpected start error: %v", err)
+	}
+
+	var channelMessages []agentrunner.Message
+	for msg := range session.Messages {
+		channelMessages = append(channelMessages, msg)
+	}
+
+	if _, err := session.Result(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Callback should have received the same messages as the channel.
+	if len(callbackMessages) != len(channelMessages) {
+		t.Fatalf("callback got %d messages, channel got %d", len(callbackMessages), len(channelMessages))
+	}
+
+	for i := range callbackMessages {
+		if callbackMessages[i].Type != channelMessages[i].Type {
+			t.Errorf("message[%d]: callback type %q != channel type %q",
+				i, callbackMessages[i].Type, channelMessages[i].Type)
+		}
+	}
+}
+
+func TestStartRawJSON(t *testing.T) {
+	r := NewRunner(withCommandBuilder(helperBuilder("stream_multi")))
+	session, err := r.Start(context.Background(), "test raw")
+	if err != nil {
+		t.Fatalf("unexpected start error: %v", err)
+	}
+
+	for msg := range session.Messages {
+		if len(msg.Raw) == 0 {
+			t.Errorf("message type %q has empty Raw field", msg.Type)
+		}
+	}
+
+	if _, err := session.Result(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestStartChannelClosure(t *testing.T) {
+	r := NewRunner(withCommandBuilder(helperBuilder("stream_no_result")))
+	session, err := r.Start(context.Background(), "partial")
+	if err != nil {
+		t.Fatalf("unexpected start error: %v", err)
+	}
+
+	// Drain messages.
+	var count int
+	for range session.Messages {
+		count++
+	}
+
+	// Channel should be closed even without result message.
+	if count != 2 {
+		t.Errorf("got %d messages, want 2", count)
+	}
+
+	// ErrNoResult expected since process exits cleanly but no result message.
+	if _, err := session.Result(); err != nil {
+		t.Logf("got error (acceptable): %v", err)
+	}
+}
+
+// --- Message accessor tests ---
+
+func TestMessageAccessors(t *testing.T) {
+	// Text accessor via Parsed
+	textMsg := agentrunner.Message{
+		Type: agentrunner.MessageTypeAssistant,
+		Parsed: &StreamMessage{
+			Type:    "assistant",
+			Content: []ContentBlock{{Type: "text", Text: "hello"}},
+		},
+	}
+	if got := textMsg.Text(); got != "hello" {
+		t.Errorf("Text() = %q, want %q", got, "hello")
+	}
+
+	// ToolName accessor
+	toolMsg := agentrunner.Message{
+		Type: agentrunner.MessageTypeAssistant,
+		Parsed: &StreamMessage{
+			Type:    "assistant",
+			Content: []ContentBlock{{Type: "tool_use", Name: "Read"}},
+		},
+	}
+	if got := toolMsg.ToolName(); got != "Read" {
+		t.Errorf("ToolName() = %q, want %q", got, "Read")
+	}
+
+	// IsError accessor
+	errMsg := agentrunner.Message{
+		Type: agentrunner.MessageTypeResult,
+		Parsed: &StreamMessage{
+			Type:    "result",
+			IsError: true,
+			Result:  "something broke",
+		},
+	}
+	if !errMsg.IsError() {
+		t.Error("IsError() = false, want true")
+	}
+	if got := errMsg.ErrorMessage(); got != "something broke" {
+		t.Errorf("ErrorMessage() = %q, want %q", got, "something broke")
+	}
+
+	// ParseMessage
+	sm, ok := ParseMessage(textMsg)
+	if !ok {
+		t.Fatal("ParseMessage returned false")
+	}
+	if sm.Text() != "hello" {
+		t.Errorf("ParseMessage().Text() = %q, want %q", sm.Text(), "hello")
+	}
+
+	// ParseMessage with wrong type
+	wrongMsg := agentrunner.Message{Type: agentrunner.MessageTypeAssistant, Parsed: "not a StreamMessage"}
+	_, ok = ParseMessage(wrongMsg)
+	if ok {
+		t.Error("ParseMessage returned true for wrong type")
 	}
 }

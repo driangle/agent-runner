@@ -1,6 +1,6 @@
 package claudecode
 
-import agentrunner "github.com/driangle/agent-runner/go"
+import "github.com/driangle/agent-runner/agentrunner"
 
 // WithAllowedTools specifies which tools the agent may use.
 func WithAllowedTools(tools ...string) agentrunner.Option {
@@ -51,10 +51,10 @@ func WithResume(sessionID string) agentrunner.Option {
 }
 
 // WithContinue continues the most recent session.
-func WithContinue(cont bool) agentrunner.Option {
+func WithContinue() agentrunner.Option {
 	return func(o *agentrunner.Options) {
 		opts := getClaudeOpts(o)
-		opts.Continue = cont
+		opts.Continue = true
 	}
 }
 
@@ -67,10 +67,10 @@ func WithSessionID(id string) agentrunner.Option {
 }
 
 // WithIncludePartialMessages enables streaming of partial/incremental messages.
-func WithIncludePartialMessages(enabled bool) agentrunner.Option {
+func WithIncludePartialMessages() agentrunner.Option {
 	return func(o *agentrunner.Options) {
 		opts := getClaudeOpts(o)
-		opts.IncludePartialMessages = enabled
+		opts.IncludePartialMessages = true
 	}
 }
 
@@ -109,14 +109,11 @@ type ClaudeOptions struct {
 type OnMessageFunc func(agentrunner.Message)
 
 // WithOnMessage sets a callback that is invoked for each streaming message
-// during RunStream. The callback is called before the message is sent on the
+// during Start/Run. The callback is called before the message is sent on the
 // channel, so it can be used for logging, progress display, etc.
 func WithOnMessage(fn OnMessageFunc) agentrunner.Option {
 	return func(o *agentrunner.Options) {
-		if o.Extra == nil {
-			o.Extra = make(map[any]any)
-		}
-		o.Extra[onMessageKey{}] = fn
+		o.SetExtra(onMessageKey{}, fn)
 	}
 }
 
@@ -125,43 +122,36 @@ type onMessageKey struct{}
 // GetOnMessage extracts the OnMessage callback from resolved Options.
 // Returns nil if no callback was set.
 func GetOnMessage(o *agentrunner.Options) OnMessageFunc {
-	if o.Extra == nil {
+	v, ok := o.GetExtra(onMessageKey{})
+	if !ok {
 		return nil
 	}
-	if v, ok := o.Extra[onMessageKey{}]; ok {
-		if fn, ok := v.(OnMessageFunc); ok {
-			return fn
-		}
+	if fn, ok := v.(OnMessageFunc); ok {
+		return fn
 	}
 	return nil
 }
 
 // claudeOptsKey is the key used to store ClaudeOptions in Options.
-// This uses the extension mechanism via the Options.Extra map.
 type claudeOptsKey struct{}
 
 // getClaudeOpts retrieves or initializes ClaudeOptions from the common Options.
 func getClaudeOpts(o *agentrunner.Options) *ClaudeOptions {
-	if o.Extra == nil {
-		o.Extra = make(map[any]any)
-	}
-	key := claudeOptsKey{}
-	if v, ok := o.Extra[key]; ok {
+	v, ok := o.GetExtra(claudeOptsKey{})
+	if ok {
 		return v.(*ClaudeOptions)
 	}
 	opts := &ClaudeOptions{}
-	o.Extra[key] = opts
+	o.SetExtra(claudeOptsKey{}, opts)
 	return opts
 }
 
 // GetClaudeOptions extracts Claude-specific options from resolved Options.
 // Returns nil if no Claude-specific options were set.
 func GetClaudeOptions(o *agentrunner.Options) *ClaudeOptions {
-	if o.Extra == nil {
+	v, ok := o.GetExtra(claudeOptsKey{})
+	if !ok {
 		return nil
 	}
-	if v, ok := o.Extra[claudeOptsKey{}]; ok {
-		return v.(*ClaudeOptions)
-	}
-	return nil
+	return v.(*ClaudeOptions)
 }

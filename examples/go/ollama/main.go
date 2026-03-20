@@ -21,8 +21,8 @@ import (
 	"os"
 	"time"
 
-	agentrunner "github.com/driangle/agent-runner/go"
-	"github.com/driangle/agent-runner/go/ollama"
+	"github.com/driangle/agent-runner/agentrunner"
+	"github.com/driangle/agent-runner/agentrunner/ollama"
 )
 
 func main() {
@@ -93,25 +93,28 @@ func exampleSimpleRun(ctx context.Context, runner *ollama.Runner, model string) 
 	fmt.Printf("Response: %s\n", result.Text)
 	fmt.Printf("Cost:     $%.4f (always 0 for local models)\n", result.CostUSD)
 	fmt.Printf("Tokens:   %d in / %d out\n", result.Usage.InputTokens, result.Usage.OutputTokens)
-	fmt.Printf("Duration: %dms\n", result.DurationMs)
+	fmt.Printf("Duration: %s\n", result.Duration)
 	fmt.Printf("Error:    %v\n", result.IsError)
 	return nil
 }
 
-// exampleStreaming uses RunStream to print tokens as they arrive.
+// exampleStreaming uses Start to print tokens as they arrive.
 func exampleStreaming(ctx context.Context, runner *ollama.Runner, model string) error {
 	prompt := "List 3 fun facts about Go (the programming language). Be brief."
 	fmt.Printf("Prompt: %s\n", prompt)
 	fmt.Println("---")
 
-	msgCh, errCh := runner.RunStream(ctx, prompt,
+	session, err := runner.Start(ctx, prompt,
 		agentrunner.WithModel(model),
 		agentrunner.WithTimeout(5*time.Minute),
 		agentrunner.WithSystemPrompt("You are a helpful assistant. Keep answers concise."),
 		ollama.WithTemperature(0.7),
 	)
+	if err != nil {
+		return err
+	}
 
-	for msg := range msgCh {
+	for msg := range session.Messages {
 		switch msg.Type {
 		case agentrunner.MessageTypeAssistant:
 			// Each assistant message is a streaming chunk with partial content.
@@ -138,7 +141,7 @@ func exampleStreaming(ctx context.Context, runner *ollama.Runner, model string) 
 		}
 	}
 
-	if err := <-errCh; err != nil {
+	if _, err := session.Result(); err != nil {
 		return err
 	}
 	return nil
@@ -152,13 +155,16 @@ func exampleThinking(ctx context.Context, runner *ollama.Runner, model string) e
 	fmt.Printf("Prompt: %s\n", prompt)
 	fmt.Println("---")
 
-	msgCh, errCh := runner.RunStream(ctx, prompt,
+	session, err := runner.Start(ctx, prompt,
 		agentrunner.WithModel(model),
 		agentrunner.WithTimeout(5*time.Minute),
 		ollama.WithThink(true),
 	)
+	if err != nil {
+		return err
+	}
 
-	for msg := range msgCh {
+	for msg := range session.Messages {
 		if msg.Type != agentrunner.MessageTypeAssistant {
 			continue
 		}
@@ -180,7 +186,7 @@ func exampleThinking(ctx context.Context, runner *ollama.Runner, model string) e
 	}
 	fmt.Println("\n---")
 
-	if err := <-errCh; err != nil {
+	if _, err := session.Result(); err != nil {
 		return err
 	}
 	return nil
@@ -192,10 +198,13 @@ func exampleSession(ctx context.Context, runner *ollama.Runner, model string) er
 	prompt := "What is the capital of France? Reply with just the city name."
 	fmt.Printf("Prompt: %s\n", prompt)
 
-	session := runner.Start(ctx, prompt,
+	session, err := runner.Start(ctx, prompt,
 		agentrunner.WithModel(model),
 		agentrunner.WithTimeout(5*time.Minute),
 	)
+	if err != nil {
+		return err
+	}
 
 	// Iterate messages as they arrive, printing streamed content.
 	var count int
@@ -222,6 +231,6 @@ func exampleSession(ctx context.Context, runner *ollama.Runner, model string) er
 	}
 
 	fmt.Printf("Response: %s\n", result.Text)
-	fmt.Printf("Duration: %dms\n", result.DurationMs)
+	fmt.Printf("Duration: %s\n", result.Duration)
 	return nil
 }

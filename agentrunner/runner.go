@@ -19,26 +19,18 @@ type Session struct {
 	// when the agent process finishes or is aborted.
 	Messages <-chan Message
 
-	// resultCh receives the final result (or error) once the process completes.
-	resultCh chan ResultOrError
+	result *Result
+	err    error
+	done   chan struct{}
 
 	// abort cancels the underlying context, terminating the agent process.
 	abort context.CancelFunc
 }
 
-// ResultOrError holds either a result or an error from a completed session.
-type ResultOrError struct {
-	Result *Result
-	Err    error
-}
-
 // Result blocks until the agent finishes and returns the final result.
 func (s *Session) Result() (*Result, error) {
-	r, ok := <-s.resultCh
-	if !ok {
-		return nil, ErrNoResult
-	}
-	return r.Result, r.Err
+	<-s.done
+	return s.result, s.err
 }
 
 // Abort terminates the agent process.
@@ -54,15 +46,27 @@ func (s *Session) Send(_ any) error {
 	return ErrNotSupported
 }
 
-// NewSession creates a Session with the given channels and abort function.
-// The session sets a runtime finalizer so that abandoning a session (not draining
-// messages, not calling Abort) will still terminate the underlying process.
-func NewSession(messages <-chan Message, resultCh chan ResultOrError, abort context.CancelFunc) *Session {
+// StreamFunc is the function a Runner implementation provides to drive message
+// streaming. It sends messages on the provided channel and returns the final
+// result. The function must respect context cancellation.
+type StreamFunc func(ctx context.Context, messages chan<- Message) (*Result, error)
+
+// NewSession creates a Session that runs the given stream function in a goroutine.
+// Runner implementations use this to construct Sessions after completing pre-flight
+// checks. The cancel function is used as the Session's abort mechanism.
+func NewSession(ctx context.Context, cancel context.CancelFunc, fn StreamFunc) *Session {
+	msgCh := make(chan Message)
 	s := &Session{
-		Messages: messages,
-		resultCh: resultCh,
-		abort:    abort,
+		Messages: msgCh,
+		done:     make(chan struct{}),
+		abort:    cancel,
 	}
+	go func() {
+		defer close(s.done)
+		defer close(msgCh)
+		defer cancel()
+		s.result, s.err = fn(ctx, msgCh)
+	}()
 	runtime.SetFinalizer(s, func(s *Session) {
 		s.Abort()
 	})
@@ -72,15 +76,12 @@ func NewSession(messages <-chan Message, resultCh chan ResultOrError, abort cont
 // Runner executes prompts against an AI coding agent and returns results.
 type Runner interface {
 	// Start launches an agent process and returns a Session for full control.
-	Start(ctx context.Context, prompt string, opts ...Option) *Session
+	// Pre-flight errors (binary not found, version mismatch) are returned
+	// immediately. Runtime errors are available via session.Result().
+	Start(ctx context.Context, prompt string, opts ...Option) (*Session, error)
 
 	// Run sends a prompt and blocks until the agent finishes.
 	Run(ctx context.Context, prompt string, opts ...Option) (*Result, error)
-
-	// RunStream sends a prompt and returns channels for streaming messages.
-	// The message channel emits messages as they arrive and is closed when done.
-	// The error channel receives at most one error and is then closed.
-	RunStream(ctx context.Context, prompt string, opts ...Option) (<-chan Message, <-chan error)
 }
 
 // Option configures a runner invocation using the functional options pattern.
@@ -113,8 +114,26 @@ type Options struct {
 	// SkipPermissions bypasses interactive permission prompts.
 	SkipPermissions bool
 
-	// Extra holds runner-specific options keyed by runner-defined types.
-	Extra map[any]any
+	// extra holds runner-specific options keyed by runner-defined types.
+	extra map[any]any
+}
+
+// SetExtra stores a runner-specific value in the options. Used by runner
+// option functions to pass runner-specific configuration.
+func (o *Options) SetExtra(key, value any) {
+	if o.extra == nil {
+		o.extra = make(map[any]any)
+	}
+	o.extra[key] = value
+}
+
+// GetExtra retrieves a runner-specific value from the options.
+func (o *Options) GetExtra(key any) (any, bool) {
+	if o.extra == nil {
+		return nil, false
+	}
+	v, ok := o.extra[key]
+	return v, ok
 }
 
 // WithModel sets the model name or alias.
@@ -153,8 +172,8 @@ func WithTimeout(d time.Duration) Option {
 }
 
 // WithSkipPermissions bypasses interactive permission prompts.
-func WithSkipPermissions(skip bool) Option {
-	return func(o *Options) { o.SkipPermissions = skip }
+func WithSkipPermissions() Option {
+	return func(o *Options) { o.SkipPermissions = true }
 }
 
 // Result is the final output from a runner invocation.
@@ -174,8 +193,8 @@ type Result struct {
 	// CostUSD is the estimated cost in USD (0 for local runners).
 	CostUSD float64
 
-	// DurationMs is the wall-clock duration in milliseconds.
-	DurationMs int64
+	// Duration is the wall-clock duration.
+	Duration time.Duration
 
 	// SessionID identifies the session for resumption.
 	SessionID string
@@ -216,7 +235,7 @@ const (
 	MessageTypeError MessageType = "error"
 )
 
-// Message is the unit of streaming output from RunStream.
+// Message is the unit of streaming output from a Session.
 type Message struct {
 	// Type identifies the message kind.
 	Type MessageType
@@ -247,9 +266,53 @@ func (m Message) Thinking() string {
 	return ""
 }
 
+// ToolName returns the name of the tool being called, if this is a tool_use message.
+func (m Message) ToolName() string {
+	if a, ok := m.Parsed.(interface{ ToolName() string }); ok {
+		return a.ToolName()
+	}
+	return ""
+}
+
+// ToolInput returns the tool call arguments as raw JSON, if this is a tool_use message.
+func (m Message) ToolInput() json.RawMessage {
+	if a, ok := m.Parsed.(interface{ ToolInput() json.RawMessage }); ok {
+		return a.ToolInput()
+	}
+	return nil
+}
+
+// ToolOutput returns the tool execution output as raw JSON, if this is a tool_result message.
+func (m Message) ToolOutput() json.RawMessage {
+	if a, ok := m.Parsed.(interface{ ToolOutput() json.RawMessage }); ok {
+		return a.ToolOutput()
+	}
+	return nil
+}
+
 // IsResult reports whether this message is a final result message.
 func (m Message) IsResult() bool {
 	return m.Type == MessageTypeResult
+}
+
+// IsError reports whether this message represents an error. Returns true for
+// error-type messages and for result messages with is_error set.
+func (m Message) IsError() bool {
+	if m.Type == MessageTypeError {
+		return true
+	}
+	if a, ok := m.Parsed.(interface{ IsErrorResult() bool }); ok {
+		return a.IsErrorResult()
+	}
+	return false
+}
+
+// ErrorMessage returns an error description, if this is an error message.
+func (m Message) ErrorMessage() string {
+	if a, ok := m.Parsed.(interface{ ErrorMessage() string }); ok {
+		return a.ErrorMessage()
+	}
+	return ""
 }
 
 // Sentinel errors for common failure modes.

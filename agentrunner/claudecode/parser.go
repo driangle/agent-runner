@@ -3,7 +3,7 @@ package claudecode
 import (
 	"encoding/json"
 
-	agentrunner "github.com/driangle/agent-runner/go"
+	"github.com/driangle/agent-runner/agentrunner"
 )
 
 // Parse parses a single JSON line from Claude Code's stream-json output
@@ -39,15 +39,11 @@ func Parse(line []byte) (StreamMessage, error) {
 }
 
 // ParseMessage extracts the Claude-specific StreamMessage from a common Message.
-// If the message was produced by the Claude runner, it returns the pre-parsed value
-// from Parsed. Otherwise it parses Raw.
-func ParseMessage(msg agentrunner.Message) (*StreamMessage, error) {
+// If the message was produced by the Claude runner, it returns the pre-parsed
+// value from Parsed. Otherwise it returns nil, false.
+func ParseMessage(msg agentrunner.Message) (*StreamMessage, bool) {
 	if sm, ok := msg.Parsed.(*StreamMessage); ok {
-		return sm, nil
+		return sm, true
 	}
-	parsed, err := Parse(msg.Raw)
-	if err != nil {
-		return nil, err
-	}
-	return &parsed, nil
+	return nil, false
 }

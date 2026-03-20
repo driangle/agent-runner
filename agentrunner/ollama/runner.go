@@ -15,8 +15,9 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"time"
 
-	agentrunner "github.com/driangle/agent-runner/go"
+	"github.com/driangle/agent-runner/agentrunner"
 )
 
 // Compile-time interface assertion.
@@ -63,9 +64,10 @@ func NewRunner(opts ...RunnerOption) *Runner {
 }
 
 // Start launches an Ollama chat request and returns a Session for full control
-// over the lifecycle. Messages arrive on session.Messages; the final result is
+// over the lifecycle. Pre-flight errors (request building, HTTP errors) are
+// returned immediately. Messages arrive on session.Messages; the final result is
 // available via session.Result().
-func (r *Runner) Start(ctx context.Context, prompt string, opts ...agentrunner.Option) *agentrunner.Session {
+func (r *Runner) Start(ctx context.Context, prompt string, opts ...agentrunner.Option) (*agentrunner.Session, error) {
 	var options agentrunner.Options
 	for _, o := range opts {
 		o(&options)
@@ -78,38 +80,44 @@ func (r *Runner) Start(ctx context.Context, prompt string, opts ...agentrunner.O
 
 	ctx, sessionCancel := context.WithCancel(ctx)
 
-	msgCh := make(chan agentrunner.Message)
-	resultCh := make(chan agentrunner.ResultOrError, 1)
+	cleanup := func() {
+		sessionCancel()
+		if timeoutCancel != nil {
+			timeoutCancel()
+		}
+	}
 
-	go func() {
-		defer close(msgCh)
-		defer close(resultCh)
-		defer sessionCancel()
+	// Pre-flight: build the HTTP request.
+	req, err := r.buildRequest(ctx, prompt, &options)
+	if err != nil {
+		cleanup()
+		return nil, err
+	}
+
+	r.logRequest(ctx, req)
+
+	// Pre-flight: execute HTTP request.
+	resp, err := r.client.Do(req)
+	if err != nil {
+		cleanup()
+		return nil, mapHTTPError(err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		cleanup()
+		return nil, mapStatusError(resp.StatusCode)
+	}
+
+	onMessage := GetOnMessage(&options)
+
+	// All pre-flight passed. Create session with the streaming goroutine.
+	return agentrunner.NewSession(ctx, sessionCancel, func(ctx context.Context, msgCh chan<- agentrunner.Message) (*agentrunner.Result, error) {
+		defer resp.Body.Close()
 		if timeoutCancel != nil {
 			defer timeoutCancel()
 		}
 
-		req, err := r.buildRequest(ctx, prompt, &options)
-		if err != nil {
-			resultCh <- agentrunner.ResultOrError{Err: err}
-			return
-		}
-
-		r.logRequest(ctx, req)
-
-		resp, err := r.client.Do(req)
-		if err != nil {
-			resultCh <- agentrunner.ResultOrError{Err: mapHTTPError(err)}
-			return
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			resultCh <- agentrunner.ResultOrError{Err: mapStatusError(resp.StatusCode)}
-			return
-		}
-
-		onMessage := GetOnMessage(&options)
 		scanner := bufio.NewScanner(resp.Body)
 		scanner.Buffer(make([]byte, 0, 64*1024), 10*1024*1024)
 
@@ -124,8 +132,7 @@ func (r *Runner) Start(ctx context.Context, prompt string, opts ...agentrunner.O
 
 			var chunk chatResponse
 			if err := json.Unmarshal([]byte(line), &chunk); err != nil {
-				resultCh <- agentrunner.ResultOrError{Err: fmt.Errorf("%w: %v", agentrunner.ErrParseError, err)}
-				return
+				return nil, fmt.Errorf("%w: %v", agentrunner.ErrParseError, err)
 			}
 
 			if chunk.Message.Content != "" {
@@ -154,63 +161,42 @@ func (r *Runner) Start(ctx context.Context, prompt string, opts ...agentrunner.O
 			select {
 			case msgCh <- msg:
 			case <-ctx.Done():
-				resultCh <- agentrunner.ResultOrError{Err: mapContextError(ctx.Err())}
-				return
+				return nil, mapContextError(ctx.Err())
 			}
 		}
 
 		if err := scanner.Err(); err != nil {
 			if ctx.Err() != nil {
-				resultCh <- agentrunner.ResultOrError{Err: mapContextError(ctx.Err())}
-				return
+				return nil, mapContextError(ctx.Err())
 			}
-			resultCh <- agentrunner.ResultOrError{Err: fmt.Errorf("%w: %v", agentrunner.ErrParseError, err)}
-			return
+			return nil, fmt.Errorf("%w: %v", agentrunner.ErrParseError, err)
 		}
 
 		if finalResp == nil {
-			resultCh <- agentrunner.ResultOrError{Err: agentrunner.ErrNoResult}
-			return
+			return nil, agentrunner.ErrNoResult
 		}
 
 		result := &agentrunner.Result{
-			Text:       strings.Join(textParts, ""),
-			DurationMs: finalResp.TotalDuration / 1e6,
+			Text:     strings.Join(textParts, ""),
+			Duration: time.Duration(finalResp.TotalDuration),
 			Usage: agentrunner.Usage{
 				InputTokens:  finalResp.PromptEvalCount,
 				OutputTokens: finalResp.EvalCount,
 			},
 		}
-		resultCh <- agentrunner.ResultOrError{Result: result}
-	}()
-
-	return agentrunner.NewSession(msgCh, resultCh, sessionCancel)
+		return result, nil
+	}), nil
 }
 
 // Run executes a prompt against Ollama and returns the final result.
 func (r *Runner) Run(ctx context.Context, prompt string, opts ...agentrunner.Option) (*agentrunner.Result, error) {
-	session := r.Start(ctx, prompt, opts...)
+	session, err := r.Start(ctx, prompt, opts...)
+	if err != nil {
+		return nil, err
+	}
 	for range session.Messages {
 	}
 	return session.Result()
-}
-
-// RunStream executes a prompt against Ollama and streams messages as they arrive.
-func (r *Runner) RunStream(ctx context.Context, prompt string, opts ...agentrunner.Option) (<-chan agentrunner.Message, <-chan error) {
-	session := r.Start(ctx, prompt, opts...)
-
-	errCh := make(chan error, 1)
-	go func() {
-		defer close(errCh)
-		result, err := session.Result()
-		if err != nil {
-			errCh <- err
-		} else if result != nil && result.IsError {
-			// Not a library error — caller reads it from the result message.
-		}
-	}()
-
-	return session.Messages, errCh
 }
 
 func (r *Runner) buildRequest(ctx context.Context, prompt string, opts *agentrunner.Options) (*http.Request, error) {

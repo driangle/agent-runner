@@ -67,6 +67,52 @@ func (m *StreamMessage) Thinking() string {
 	return ""
 }
 
+// ToolName returns the name of the first tool_use content block, if any.
+func (m *StreamMessage) ToolName() string {
+	for _, b := range m.Content {
+		if b.Type == "tool_use" {
+			return b.Name
+		}
+	}
+	if m.Event != nil && m.Event.ContentBlock != nil && m.Event.ContentBlock.Type == "tool_use" {
+		return m.Event.ContentBlock.Name
+	}
+	return ""
+}
+
+// ToolInput returns the input arguments of the first tool_use content block as raw JSON.
+func (m *StreamMessage) ToolInput() json.RawMessage {
+	for _, b := range m.Content {
+		if b.Type == "tool_use" {
+			return b.Input
+		}
+	}
+	return nil
+}
+
+// ToolOutput returns the output of the first tool_result content block as raw JSON.
+func (m *StreamMessage) ToolOutput() json.RawMessage {
+	for _, b := range m.Content {
+		if b.Type == "tool_result" {
+			return b.Content
+		}
+	}
+	return nil
+}
+
+// IsErrorResult reports whether this message is a result with is_error set.
+func (m *StreamMessage) IsErrorResult() bool {
+	return m.IsError
+}
+
+// ErrorMessage returns the error text if this is an error result.
+func (m *StreamMessage) ErrorMessage() string {
+	if m.IsError {
+		return m.Result
+	}
+	return ""
+}
+
 // AssistantMessage is the nested "message" object inside assistant-type stream lines.
 type AssistantMessage struct {
 	Model      string         `json:"model,omitempty"`
