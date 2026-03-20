@@ -101,9 +101,9 @@ export interface RunOptions {
 }
 
 /** Session encapsulates a running agent process. */
-export interface Session {
+export interface Session<M extends Message = Message> {
   /** Iterable of messages as they arrive. */
-  messages: AsyncIterable<Message>;
+  messages: AsyncIterable<M>;
 
   /** Resolves when the agent finishes with the final result. */
   result: Promise<Result>;
@@ -116,13 +116,13 @@ export interface Session {
 }
 
 /** Runner executes prompts against an AI coding agent. */
-export interface Runner<O extends RunOptions = RunOptions> {
+export interface Runner<O extends RunOptions = RunOptions, M extends Message = Message> {
   /** Launch an agent process and return a Session for full control. */
-  start(prompt: string, options?: O): Session;
+  start(prompt: string, options?: O): Session<M>;
 
   /** Send a prompt and block until the agent finishes. */
   run(prompt: string, options?: O): Promise<Result>;
 
   /** Send a prompt and stream messages as they arrive. */
-  runStream(prompt: string, options?: O): AsyncIterable<Message>;
+  runStream(prompt: string, options?: O): AsyncIterable<M>;
 }

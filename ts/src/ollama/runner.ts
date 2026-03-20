@@ -1,6 +1,7 @@
 import { createInterface } from "node:readline";
 import { Readable } from "node:stream";
 import type { Runner, Result, Message, Session, Usage } from "../types.js";
+import type { OllamaMessage } from "./accessors.js";
 import {
   RunnerError,
   NotFoundError,
@@ -27,7 +28,7 @@ import type {
 const DEFAULT_BASE_URL = "http://localhost:11434";
 
 /** Create an Ollama runner. */
-export function createOllamaRunner(config: OllamaRunnerConfig = {}): Runner<OllamaRunOptions> {
+export function createOllamaRunner(config: OllamaRunnerConfig = {}): Runner<OllamaRunOptions, OllamaMessage> {
   const baseURL = config.baseURL ?? DEFAULT_BASE_URL;
   const fetchFn: FetchFn = config.fetch ?? fetch;
 
@@ -47,7 +48,7 @@ function start(
   baseURL: string,
   prompt: string,
   options: OllamaRunOptions = {},
-): Session {
+): Session<OllamaMessage> {
   const { signal, clearTimeout: clearTO } = combinedSignal(options);
   const abortController = new AbortController();
 
@@ -64,7 +65,7 @@ function start(
   });
   resultPromise.catch(() => {}); // Prevent unhandled rejection on abandon.
 
-  async function* messageGenerator(): AsyncGenerator<Message> {
+  async function* messageGenerator(): AsyncGenerator<OllamaMessage> {
     try {
       const body = buildRequestBody(prompt, options);
 
@@ -124,7 +125,7 @@ function start(
           finalResp = chunk;
         }
 
-        const msg: Message = {
+        const msg: OllamaMessage = {
           type: chunk.done ? "result" : "assistant",
           raw: line,
           data: chunk,
@@ -210,7 +211,7 @@ async function* runStream(
   baseURL: string,
   prompt: string,
   options: OllamaRunOptions = {},
-): AsyncGenerator<Message> {
+): AsyncGenerator<OllamaMessage> {
   const session = start(config, fetchFn, baseURL, prompt, options);
   yield* session.messages;
 

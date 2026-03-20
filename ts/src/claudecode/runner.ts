@@ -1,6 +1,7 @@
 import { createInterface } from "node:readline";
 import { once } from "node:events";
 import type { Runner, Result, Message, Session } from "../types.js";
+import type { ClaudeMessage } from "./accessors.js";
 import { NotFoundError, NonZeroExitError, NoResultError, NotSupportedError } from "../errors.js";
 import type { ClaudeRunnerConfig, ClaudeRunOptions, SpawnFn } from "./options.js";
 import type { StreamMessage, ResultStreamMessage } from "./types.js";
@@ -11,7 +12,7 @@ import { combinedSignal, abortError } from "../signal.js";
 import { logCmd, resolveSpawn, collectErrorDetail } from "./process.js";
 
 /** Create a Claude Code runner. */
-export function createClaudeRunner(config: ClaudeRunnerConfig = {}): Runner<ClaudeRunOptions> {
+export function createClaudeRunner(config: ClaudeRunnerConfig = {}): Runner<ClaudeRunOptions, ClaudeMessage> {
   const { spawn: spawnFn, binary } = resolveSpawn(config);
 
   return {
@@ -30,7 +31,7 @@ function start(
   binary: string,
   prompt: string,
   options: ClaudeRunOptions = {},
-): Session {
+): Session<ClaudeMessage> {
   const args = buildArgs(prompt, options);
   const { signal, clearTimeout: clearTO } = combinedSignal(options);
 
@@ -78,7 +79,7 @@ function start(
   });
   resultPromise.catch(() => {}); // Prevent unhandled rejection on abandon.
 
-  async function* messageGenerator(): AsyncGenerator<Message> {
+  async function* messageGenerator(): AsyncGenerator<ClaudeMessage> {
     try {
       for await (const line of rl) {
         if (signal.aborted) {
@@ -101,7 +102,7 @@ function start(
           resultMsg = parsed as ResultStreamMessage;
         }
 
-        const msg: Message = {
+        const msg: ClaudeMessage = {
           type: parsed.type,
           raw: line,
           data: parsed,
@@ -192,7 +193,7 @@ async function* runStream(
   binary: string,
   prompt: string,
   options: ClaudeRunOptions = {},
-): AsyncGenerator<Message> {
+): AsyncGenerator<ClaudeMessage> {
   const session = start(config, spawnFn, binary, prompt, options);
   yield* session.messages;
 

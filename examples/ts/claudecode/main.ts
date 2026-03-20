@@ -12,8 +12,7 @@
 
 import { parseArgs } from "node:util";
 import { createClaudeRunner, messageTextDelta } from "agentrunner/claudecode";
-import type { ClaudeRunOptions, ClaudeMessage, ResultStreamMessage, SystemStreamMessage } from "agentrunner/claudecode";
-import type { Runner } from "agentrunner";
+import type { ResultStreamMessage, SystemStreamMessage } from "agentrunner/claudecode";
 
 const { values } = parseArgs({
   options: {
@@ -55,7 +54,7 @@ async function main() {
 }
 
 /** Send a single prompt and print the result. */
-async function exampleSimpleRun(runner: Runner<ClaudeRunOptions>) {
+async function exampleSimpleRun(runner: ReturnType<typeof createClaudeRunner>) {
   const prompt = "What is 2+2? Reply with just the number.";
   console.log(`Prompt:   ${prompt}`);
 
@@ -76,7 +75,7 @@ async function exampleSimpleRun(runner: Runner<ClaudeRunOptions>) {
 }
 
 /** Use runStream to print messages as they arrive. */
-async function exampleStreaming(runner: Runner<ClaudeRunOptions>, verbose: boolean) {
+async function exampleStreaming(runner: ReturnType<typeof createClaudeRunner>, verbose: boolean) {
   const prompt = "List 3 fun facts about TypeScript. Be brief.";
   console.log(`Prompt: ${prompt}`);
   console.log("---");
@@ -90,26 +89,24 @@ async function exampleStreaming(runner: Runner<ClaudeRunOptions>, verbose: boole
   let model = "unknown";
 
   for await (const msg of stream) {
-    const cm = msg as ClaudeMessage;
-
     switch (msg.type) {
       case "system": {
         if (verbose) console.log(`[system] ${msg.raw}`);
-        const sys = cm.data as SystemStreamMessage;
+        const sys = msg.data as SystemStreamMessage;
         if (sys.model) model = sys.model;
         break;
       }
       case "stream_event": {
         // With --include-partial-messages, stream_event messages carry
         // real-time text deltas via content_block_delta events.
-        const text = messageTextDelta(cm);
+        const text = messageTextDelta(msg);
         if (text) {
           process.stdout.write(text);
         }
         break;
       }
       case "result": {
-        const result = cm.data as ResultStreamMessage;
+        const result = msg.data as ResultStreamMessage;
         console.log("\n---");
         console.log(`Cost:     $${(result.total_cost_usd ?? 0).toFixed(4)}`);
         console.log(`Duration: ${result.duration_ms ?? 0}ms`);
@@ -124,7 +121,7 @@ async function exampleStreaming(runner: Runner<ClaudeRunOptions>, verbose: boole
 }
 
 /** Demonstrate multi-turn conversations using session IDs. */
-async function exampleSessionResume(runner: Runner<ClaudeRunOptions>) {
+async function exampleSessionResume(runner: ReturnType<typeof createClaudeRunner>) {
   // First turn: ask Claude to remember something.
   const prompt1 = "Remember this number: 42. Just confirm you've noted it.";
   console.log(`Prompt 1: ${prompt1}`);
@@ -155,7 +152,7 @@ async function exampleSessionResume(runner: Runner<ClaudeRunOptions>) {
 }
 
 /** Demonstrate the Session object pattern with full lifecycle control. */
-async function exampleSession(runner: Runner<ClaudeRunOptions>) {
+async function exampleSession(runner: ReturnType<typeof createClaudeRunner>) {
   const prompt = "What is the capital of France? Reply with just the city name.";
   console.log(`Prompt: ${prompt}`);
 

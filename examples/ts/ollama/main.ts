@@ -12,8 +12,7 @@
 
 import { parseArgs } from "node:util";
 import { createOllamaRunner, messageText, messageThinking } from "agentrunner/ollama";
-import type { OllamaRunOptions, OllamaMessage } from "agentrunner/ollama";
-import type { Runner } from "agentrunner";
+import type { OllamaRunOptions } from "agentrunner/ollama";
 
 const { values } = parseArgs({
   options: {
@@ -62,7 +61,7 @@ async function main() {
 }
 
 /** Send a single prompt and print the result. */
-async function exampleSimpleRun(runner: Runner<OllamaRunOptions>, model: string) {
+async function exampleSimpleRun(runner: ReturnType<typeof createOllamaRunner>, model: string) {
   const prompt = "What is 2+2? Reply with just the number.";
   console.log(`Prompt:   ${prompt}`);
 
@@ -78,7 +77,7 @@ async function exampleSimpleRun(runner: Runner<OllamaRunOptions>, model: string)
 }
 
 /** Use runStream to print tokens as they arrive. */
-async function exampleStreaming(runner: Runner<OllamaRunOptions>, model: string) {
+async function exampleStreaming(runner: ReturnType<typeof createOllamaRunner>, model: string) {
   const prompt = "List 3 fun facts about TypeScript. Be brief.";
   console.log(`Prompt: ${prompt}`);
   console.log("---");
@@ -91,14 +90,13 @@ async function exampleStreaming(runner: Runner<OllamaRunOptions>, model: string)
   };
 
   for await (const msg of runner.runStream(prompt, options)) {
-    const om = msg as OllamaMessage;
     if (msg.type === "assistant") {
-      const text = messageText(om);
+      const text = messageText(msg);
       if (text) {
         process.stdout.write(text);
       }
     } else if (msg.type === "result") {
-      const chunk = om.data;
+      const chunk = msg.data;
       console.log("\n---");
       console.log(
         `Duration: ${chunk.total_duration ? Math.floor(chunk.total_duration / 1e6) : 0}ms`,
@@ -111,7 +109,7 @@ async function exampleStreaming(runner: Runner<OllamaRunOptions>, model: string)
 }
 
 /** Demonstrate streaming with a thinking model (e.g. qwen3). */
-async function exampleThinking(runner: Runner<OllamaRunOptions>, model: string) {
+async function exampleThinking(runner: ReturnType<typeof createOllamaRunner>, model: string) {
   const prompt = "How many r's are in the word strawberry?";
   console.log(`Prompt: ${prompt}`);
   console.log("---");
@@ -125,13 +123,12 @@ async function exampleThinking(runner: Runner<OllamaRunOptions>, model: string) 
   for await (const msg of runner.runStream(prompt, options)) {
     if (msg.type !== "assistant") continue;
 
-    const om = msg as OllamaMessage;
-    const thinking = messageThinking(om);
+    const thinking = messageThinking(msg);
     if (thinking) {
       // Dim text for thinking output.
       process.stdout.write(`\x1b[2m${thinking}\x1b[0m`);
     }
-    const text = messageText(om);
+    const text = messageText(msg);
     if (text) {
       process.stdout.write(text);
     }
@@ -140,7 +137,7 @@ async function exampleThinking(runner: Runner<OllamaRunOptions>, model: string) 
 }
 
 /** Demonstrate the Session object pattern with full lifecycle control. */
-async function exampleSession(runner: Runner<OllamaRunOptions>, model: string) {
+async function exampleSession(runner: ReturnType<typeof createOllamaRunner>, model: string) {
   const prompt = "What is the capital of France? Reply with just the city name.";
   console.log(`Prompt: ${prompt}`);
 
@@ -151,7 +148,7 @@ async function exampleSession(runner: Runner<OllamaRunOptions>, model: string) {
   for await (const msg of session.messages) {
     count++;
     if (msg.type === "assistant") {
-      const text = messageText(msg as OllamaMessage);
+      const text = messageText(msg);
       if (text) {
         process.stdout.write(text);
       }
