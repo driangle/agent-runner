@@ -10,6 +10,7 @@ from .errors import (
     RunnerError,
     TimeoutError,
 )
+from .ollama import OllamaRunner, OllamaRunnerConfig, OllamaRunOptions
 from .types import Message, Result, Runner, RunOptions, Session, Usage
 
 __all__ = [
@@ -20,6 +21,9 @@ __all__ = [
     "NoResultError",
     "NonZeroExitError",
     "NotFoundError",
+    "OllamaRunner",
+    "OllamaRunnerConfig",
+    "OllamaRunOptions",
     "ParseError",
     "Result",
     "RunOptions",
