@@ -240,9 +240,9 @@ func (r *Runner) Start(ctx context.Context, prompt string, opts ...agentrunner.O
 				_ = cmd.Process.Kill()
 				_ = cmd.Wait()
 				if ctx.Err() == context.DeadlineExceeded {
-					return nil, agentrunner.ErrTimeout
+					return nil, wrapWithStderr(agentrunner.ErrTimeout, &stderr, stdoutErrors)
 				}
-				return nil, agentrunner.ErrCancelled
+				return nil, wrapWithStderr(agentrunner.ErrCancelled, &stderr, stdoutErrors)
 			}
 		}
 
@@ -254,9 +254,9 @@ func (r *Runner) Start(ctx context.Context, prompt string, opts ...agentrunner.O
 
 		if ctx.Err() != nil {
 			if ctx.Err() == context.DeadlineExceeded {
-				return nil, agentrunner.ErrTimeout
+				return nil, wrapWithStderr(agentrunner.ErrTimeout, &stderr, stdoutErrors)
 			}
-			return nil, agentrunner.ErrCancelled
+			return nil, wrapWithStderr(agentrunner.ErrCancelled, &stderr, stdoutErrors)
 		}
 
 		if resultMsg != nil {
@@ -281,7 +281,7 @@ func (r *Runner) Start(ctx context.Context, prompt string, opts ...agentrunner.O
 			return nil, fmt.Errorf("wait: %w", waitErr)
 		}
 
-		return nil, agentrunner.ErrNoResult
+		return nil, wrapWithStderr(agentrunner.ErrNoResult, &stderr, stdoutErrors)
 	}), nil
 }
 
@@ -456,6 +456,16 @@ func (r *Runner) logCmdFailure(ctx context.Context, exitCode int, stderr string,
 		slog.String("stderr", strings.TrimSpace(stderr)),
 		slog.Any("stdout_errors", stdoutErrors),
 	)
+}
+
+// wrapWithStderr wraps a sentinel error with stderr/stdout diagnostic output
+// when available. If there's no diagnostic output, it returns the sentinel as-is,
+// preserving errors.Is compatibility.
+func wrapWithStderr(sentinel error, stderr *bytes.Buffer, stdoutErrors []string) error {
+	if stderr.Len() == 0 && len(stdoutErrors) == 0 {
+		return sentinel
+	}
+	return fmt.Errorf("%w: %s", sentinel, collectErrorDetail(stderr.String(), stdoutErrors))
 }
 
 // collectErrorDetail builds a human-readable error string from stderr and

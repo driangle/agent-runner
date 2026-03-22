@@ -48,6 +48,9 @@ func TestHelperProcess(t *testing.T) {
 	case "slow":
 		time.Sleep(5 * time.Second)
 		fmt.Println(`{"type":"result","subtype":"success","result":"late","session_id":"sess-slow"}`)
+	case "slow_stderr":
+		fmt.Fprintln(os.Stderr, "waiting for user input")
+		time.Sleep(5 * time.Second)
 	default:
 		fmt.Fprintln(os.Stderr, "unknown mode: "+mode)
 		os.Exit(2)
@@ -147,8 +150,19 @@ func TestRunNonZeroExit(t *testing.T) {
 func TestRunTimeout(t *testing.T) {
 	r := NewRunner(withCommandBuilder(helperBuilder("slow")))
 	_, err := r.Run(context.Background(), "hello", agentrunner.WithTimeout(100*time.Millisecond))
-	if err != agentrunner.ErrTimeout {
+	if !errors.Is(err, agentrunner.ErrTimeout) {
 		t.Errorf("err = %v, want ErrTimeout", err)
+	}
+}
+
+func TestRunTimeoutIncludesStderr(t *testing.T) {
+	r := NewRunner(withCommandBuilder(helperBuilder("slow_stderr")))
+	_, err := r.Run(context.Background(), "hello", agentrunner.WithTimeout(100*time.Millisecond))
+	if !errors.Is(err, agentrunner.ErrTimeout) {
+		t.Fatalf("err = %v, want ErrTimeout", err)
+	}
+	if !strings.Contains(err.Error(), "waiting for user input") {
+		t.Errorf("err = %v, want to contain stderr output", err)
 	}
 }
 
@@ -167,7 +181,7 @@ func TestRunCancelled(t *testing.T) {
 	cancel()
 
 	err := <-done
-	if err != agentrunner.ErrCancelled {
+	if !errors.Is(err, agentrunner.ErrCancelled) {
 		t.Errorf("err = %v, want ErrCancelled", err)
 	}
 }
@@ -413,7 +427,7 @@ func TestStartTimeout(t *testing.T) {
 	}
 
 	_, err = session.Result()
-	if err != agentrunner.ErrTimeout {
+	if !errors.Is(err, agentrunner.ErrTimeout) {
 		t.Errorf("err = %v, want ErrTimeout", err)
 	}
 }
