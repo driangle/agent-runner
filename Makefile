@@ -1,4 +1,4 @@
-.PHONY: check check-go test-go lint-go build-go check-ts build-ts lint-ts test-ts check-python build-python lint-python test-python
+.PHONY: check check-go test-go lint-go build-go check-ts build-ts lint-ts test-ts check-python build-python lint-python test-python docs-dev docs-build
 
 # Top-level target: check all libraries.
 check: check-go check-ts check-python
@@ -41,3 +41,11 @@ lint-python:
 
 test-python:
 	cd python && python -m pytest
+
+# --- Docs ---
+
+docs-dev:
+	cd docs && npm run docs:dev
+
+docs-build:
+	cd docs && npm run docs:build

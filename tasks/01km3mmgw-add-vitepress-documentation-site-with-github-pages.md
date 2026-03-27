@@ -1,7 +1,7 @@
 ---
 title: "Add VitePress documentation site with GitHub Pages deployment"
 id: "01km3mmgw"
-status: pending
+status: completed
 priority: medium
 type: feature
 tags: ["docs", "vitepress"]
@@ -16,18 +16,18 @@ Set up a VitePress documentation site for the agentrunner monorepo and configure
 
 ## Tasks
 
-- [ ] Initialize VitePress project under `docs/` directory (`npm init` + `vitepress` dependency)
-- [ ] Configure `docs/.vitepress/config.ts` with site title, description, nav, and sidebar structure
-- [ ] Write landing page (`docs/index.md`) with project overview and quickstart links
-- [ ] Write "Getting Started" guide covering installation and basic usage
-- [ ] Write "Runner Interface" page documenting the common interface from `INTERFACE.md`
-- [ ] Write per-language library pages: Go, TypeScript, Python, Java
-- [ ] Write "Runners" section with pages for each supported runner (Claude Code, Gemini, Codex, Ollama)
-- [ ] Add npm scripts for `docs:dev`, `docs:build`, and `docs:preview`
-- [ ] Add GitHub Actions workflow (`.github/workflows/docs.yml`) to build and deploy to GitHub Pages on push to `main`
-- [ ] Configure GitHub Pages source to use GitHub Actions deployment
-- [ ] Add `docs` targets to root Makefile (`docs-dev`, `docs-build`)
-- [ ] Verify the site builds without errors and deploys successfully
+- [x] Initialize VitePress project under `docs/` directory (`npm init` + `vitepress` dependency)
+- [x] Configure `docs/.vitepress/config.ts` with site title, description, nav, and sidebar structure
+- [x] Write landing page (`docs/index.md`) with project overview and quickstart links
+- [x] Write "Getting Started" guide covering installation and basic usage
+- [x] Write "Runner Interface" page documenting the common interface from `INTERFACE.md`
+- [x] Write per-language library pages: Go, TypeScript, Python, Java
+- [x] Write "Runners" section with pages for each supported runner (Claude Code, Gemini, Codex, Ollama)
+- [x] Add npm scripts for `docs:dev`, `docs:build`, and `docs:preview`
+- [x] Add GitHub Actions workflow (`.github/workflows/docs.yml`) to build and deploy to GitHub Pages on push to `main`
+- [x] Configure GitHub Pages source to use GitHub Actions deployment
+- [x] Add `docs` targets to root Makefile (`docs-dev`, `docs-build`)
+- [x] Verify the site builds without errors and deploys successfully
 
 ## Acceptance Criteria
 

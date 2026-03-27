@@ -1,6 +1,8 @@
 settings.local.json
 node_modules
 dist
+docs/.vitepress/dist
+docs/.vitepress/cache
 __pycache__/
 *.pyc
 
