@@ -88,6 +88,14 @@ ChannelMessage {
 - [ ] TypeScript example: two-way channel communication
 - [ ] Python example: two-way channel communication
 
+## Sub-tasks
+
+- `01kmse9cq` — Channel server binary (Go MCP server over stdio)
+- `01kmse9da` — Channel server cross-compilation and distribution (depends on 01kmse9cq)
+- `01kmse9ep` — Go library channels integration (depends on 01kmse9cq)
+- `01kmse9fk` — TypeScript library channels integration (depends on 01kmse9cq)
+- `01kmse9g7` — Python library channels integration (depends on 01kmse9cq)
+
 ## Acceptance Criteria
 
 - Go channel server binary builds and works as MCP server over stdio
