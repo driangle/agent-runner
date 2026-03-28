@@ -32,7 +32,7 @@ func main() {
 
 	result, err := runner.Run(context.Background(), "What files are in the current directory?",
 		agentrunner.WithMaxTurns(3),
-		agentrunner.WithSkipPermissions(true),
+		agentrunner.WithSkipPermissions(),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -52,25 +52,25 @@ All runners implement `agentrunner.Runner`:
 
 ```go
 type Runner interface {
+    Start(ctx context.Context, prompt string, opts ...Option) (*Session, error)
     Run(ctx context.Context, prompt string, opts ...Option) (*Result, error)
-    RunStream(ctx context.Context, prompt string, opts ...Option) (<-chan Message, <-chan error)
 }
 ```
 
-- **`Run`** — execute a prompt and block until completion.
-- **`RunStream`** — execute a prompt and stream messages as they arrive.
+- **`Start`** — launch an agent process and return a `Session` for full control (streaming messages, result, abort).
+- **`Run`** — execute a prompt and block until completion (convenience wrapper over `Start`).
 
 ### Result
 
 ```go
 type Result struct {
-    Text       string   // Final response text
-    IsError    bool     // Whether the run ended in error
-    ExitCode   int      // Process exit code
-    Usage      Usage    // Token counts (input, output, cache)
-    CostUSD    float64  // Estimated cost in USD
-    DurationMs int64    // Wall-clock duration in milliseconds
-    SessionID  string   // Session ID for resumption
+    Text      string        // Final response text
+    IsError   bool          // Whether the run ended in error
+    ExitCode  int           // Process exit code
+    Usage     Usage         // Token counts (input, output, cache)
+    CostUSD   float64       // Estimated cost in USD
+    Duration  time.Duration // Wall-clock duration
+    SessionID string        // Session ID for resumption
 }
 ```
 
@@ -84,7 +84,7 @@ agentrunner.WithWorkingDir("/path/to/project")
 agentrunner.WithEnv(map[string]string{"KEY": "value"})
 agentrunner.WithMaxTurns(5)
 agentrunner.WithTimeout(30 * time.Second)
-agentrunner.WithSkipPermissions(true)
+agentrunner.WithSkipPermissions()
 ```
 
 ### Claude Code Options
@@ -119,17 +119,23 @@ fmt.Println(result.Text)
 ```go
 runner := claudecode.NewRunner()
 
-msgCh, errCh := runner.RunStream(ctx, "Refactor the main function",
+session, err := runner.Start(ctx, "Refactor the main function",
     agentrunner.WithModel("claude-sonnet-4-6"),
-    agentrunner.WithSkipPermissions(true),
+    agentrunner.WithSkipPermissions(),
 )
-
-for msg := range msgCh {
-    fmt.Printf("[%s] %s\n", msg.Type, string(msg.Raw))
-}
-if err := <-errCh; err != nil {
+if err != nil {
     log.Fatal(err)
 }
+
+for msg := range session.Messages {
+    fmt.Printf("[%s] %s\n", msg.Type, string(msg.Raw))
+}
+
+result, err := session.Result()
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Println(result.Text)
 ```
 
 ### Streaming with Callback
@@ -137,17 +143,20 @@ if err := <-errCh; err != nil {
 ```go
 runner := claudecode.NewRunner()
 
-msgCh, errCh := runner.RunStream(ctx, "Write unit tests",
+session, err := runner.Start(ctx, "Write unit tests",
     claudecode.WithOnMessage(func(msg agentrunner.Message) {
         // Called for each message before it's sent on the channel.
         // Use for logging, progress bars, etc.
         fmt.Printf("  > %s\n", msg.Type)
     }),
 )
-
-for range msgCh {
+if err != nil {
+    log.Fatal(err)
 }
-if err := <-errCh; err != nil {
+
+for range session.Messages {
+}
+if _, err := session.Result(); err != nil {
     log.Fatal(err)
 }
 ```
@@ -174,7 +183,7 @@ if err != nil {
 
 // Or continue the most recent session.
 result, err = runner.Run(ctx, "Fix the failing test",
-    claudecode.WithContinue(true),
+    claudecode.WithContinue(),
 )
 ```
 

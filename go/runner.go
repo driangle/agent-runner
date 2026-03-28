@@ -52,8 +52,8 @@ func (s *Session) Send(_ any) error {
 type StreamFunc func(ctx context.Context, messages chan<- Message) (*Result, error)
 
 // NewSession creates a Session that runs the given stream function in a goroutine.
-// Runner implementations use this to construct Sessions after completing pre-flight
-// checks. The cancel function is used as the Session's abort mechanism.
+// This is intended for Runner implementations, not end users — use Runner.Start
+// to obtain a Session. The cancel function is used as the Session's abort mechanism.
 func NewSession(ctx context.Context, cancel context.CancelFunc, fn StreamFunc) *Session {
 	msgCh := make(chan Message)
 	s := &Session{
