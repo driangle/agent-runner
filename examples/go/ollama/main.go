@@ -21,8 +21,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/driangle/agent-runner/agentrunner"
-	"github.com/driangle/agent-runner/agentrunner/ollama"
+	"github.com/driangle/agentrunner/go"
+	"github.com/driangle/agentrunner/go/ollama"
 )
 
 func main() {

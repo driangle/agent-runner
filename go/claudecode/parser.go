@@ -3,7 +3,7 @@ package claudecode
 import (
 	"encoding/json"
 
-	"github.com/driangle/agent-runner/agentrunner"
+	"github.com/driangle/agentrunner/go"
 )
 
 // Parse parses a single JSON line from Claude Code's stream-json output

@@ -1,7 +1,7 @@
-module github.com/driangle/agent-runner/examples/go/claudecode
+module github.com/driangle/agentrunner/examples/go/claudecode
 
 go 1.22
 
-require github.com/driangle/agent-runner/agentrunner v0.0.0
+require github.com/driangle/agentrunner/go v0.0.0
 
-replace github.com/driangle/agent-runner/agentrunner => ../../../agentrunner
+replace github.com/driangle/agentrunner/go => ../../../go

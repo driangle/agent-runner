@@ -131,14 +131,14 @@ Duration time.Duration  // instead of DurationMs int64
 
 The root package is imported as:
 ```go
-import agentrunner "github.com/driangle/agent-runner/go"
+import agentrunner "github.com/driangle/agentrunner/go"
 ```
 
 The `/go` suffix requires an alias since `go` is a keyword. Consider renaming to `agentrunner` as the directory or using a Go module path that doesn't end in a keyword:
 
 ```go
 // Better
-import "github.com/driangle/agent-runner/agentrunner"
+import "github.com/driangle/agentrunner/go"
 ```
 
 ## Summary

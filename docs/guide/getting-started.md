@@ -7,7 +7,7 @@ agentrunner provides language-native libraries for programmatically invoking AI 
 ::: code-group
 
 ```sh [Go]
-go get github.com/anthropics/agentrunner/agentrunner
+go get github.com/anthropics/agentrunner/go
 ```
 
 ```sh [TypeScript]
@@ -41,7 +41,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/anthropics/agentrunner/agentrunner/claudecode"
+	"github.com/anthropics/agentrunner/go/claudecode"
 )
 
 func main() {

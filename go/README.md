@@ -1,4 +1,4 @@
-# agentrunner/go
+# agent-runner/go
 
 Go library for programmatically invoking AI coding agents. Currently supports [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code).
 
@@ -10,7 +10,7 @@ Go library for programmatically invoking AI coding agents. Currently supports [C
 ## Installation
 
 ```bash
-go get github.com/driangle/agent-runner/go
+go get github.com/driangle/agentrunner/go
 ```
 
 ## Quick Start
@@ -23,8 +23,8 @@ import (
 	"fmt"
 	"log"
 
-	agentrunner "github.com/driangle/agent-runner/go"
-	"github.com/driangle/agent-runner/go/claudecode"
+	agentrunner "github.com/driangle/agentrunner/go"
+	"github.com/driangle/agentrunner/go/claudecode"
 )
 
 func main() {
@@ -239,18 +239,18 @@ Tests use a mock `CommandBuilder` to simulate CLI output without requiring the r
 
 ## Releasing
 
-Go modules are published automatically by the Go module proxy when a tag exists. This project uses an `agentrunner/v*` tag convention (matching the module subdirectory) to enable independent releases per language.
+Go modules are published automatically by the Go module proxy when a tag exists. This project uses an `go/v*` tag convention (matching the module subdirectory) to enable independent releases per language.
 
 To release a new version:
 
 1. Ensure `main` is clean and all checks pass (`make check-go`).
 2. Tag the release:
    ```bash
-   git tag agentrunner/v0.1.0
-   git push origin agentrunner/v0.1.0
+   git tag go/v0.1.0
+   git push origin go/v0.1.0
    ```
 3. The `publish-go` GitHub Actions workflow will:
    - Run `make check-go` to validate the module.
    - Verify the module is fetchable on the Go module proxy.
    - Create a GitHub Release with auto-generated notes.
-4. The module will be available on [pkg.go.dev](https://pkg.go.dev/github.com/driangle/agent-runner/agentrunner) shortly after.
+4. The module will be available on [pkg.go.dev](https://pkg.go.dev/github.com/driangle/agentrunner/go) shortly after.

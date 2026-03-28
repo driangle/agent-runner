@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/driangle/agent-runner/agentrunner/channel"
+	"github.com/driangle/agentrunner/go/channel"
 )
 
 func main() {

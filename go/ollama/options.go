@@ -1,6 +1,6 @@
 package ollama
 
-import "github.com/driangle/agent-runner/agentrunner"
+import "github.com/driangle/agentrunner/go"
 
 // OllamaOptions holds Ollama-specific configuration that extends the common Options.
 type OllamaOptions struct {

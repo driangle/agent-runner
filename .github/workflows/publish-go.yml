@@ -3,7 +3,7 @@ name: Publish Go Module
 on:
   push:
     tags:
-      - "agentrunner/v*"
+      - "go/v*"
 
 jobs:
   validate:
@@ -21,10 +21,10 @@ jobs:
 
       - name: Extract version from tag
         id: version
-        run: echo "version=${GITHUB_REF_NAME#agentrunner/}" >> "$GITHUB_OUTPUT"
+        run: echo "version=${GITHUB_REF_NAME#go/}" >> "$GITHUB_OUTPUT"
 
       - name: Verify module is fetchable
-        run: GOPROXY=https://proxy.golang.org go list -m "github.com/driangle/agent-runner/agentrunner@${{ steps.version.outputs.version }}"
+        run: GOPROXY=https://proxy.golang.org go list -m "github.com/driangle/agentrunner/go@${{ steps.version.outputs.version }}"
 
   release:
     name: Create GitHub Release

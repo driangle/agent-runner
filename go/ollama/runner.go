@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/driangle/agent-runner/agentrunner"
+	"github.com/driangle/agentrunner/go"
 )
 
 // Compile-time interface assertion.

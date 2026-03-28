@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/driangle/agent-runner/agentrunner"
+	"github.com/driangle/agentrunner/go"
 )
 
 // helperProcess is invoked when the test binary is re-executed with

@@ -1,6 +1,6 @@
 package claudecode
 
-import "github.com/driangle/agent-runner/agentrunner"
+import "github.com/driangle/agentrunner/go"
 
 // WithAllowedTools specifies which tools the agent may use.
 func WithAllowedTools(tools ...string) agentrunner.Option {

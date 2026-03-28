@@ -1,11 +1,11 @@
 # Go Library
 
-The Go library lives under `agentrunner/` and follows standard Go module conventions.
+The Go library lives under `go/` and follows standard Go module conventions.
 
 ## Installation
 
 ```sh
-go get github.com/anthropics/agentrunner/agentrunner
+go get github.com/anthropics/agentrunner/go
 ```
 
 ## Creating a Runner
@@ -13,7 +13,7 @@ go get github.com/anthropics/agentrunner/agentrunner
 ### Claude Code
 
 ```go
-import "github.com/anthropics/agentrunner/agentrunner/claudecode"
+import "github.com/anthropics/agentrunner/go/claudecode"
 
 runner := claudecode.NewRunner()
 
@@ -27,7 +27,7 @@ runner := claudecode.NewRunner(
 ### Ollama
 
 ```go
-import "github.com/anthropics/agentrunner/agentrunner/ollama"
+import "github.com/anthropics/agentrunner/go/ollama"
 
 runner := ollama.NewRunner()
 
@@ -144,7 +144,7 @@ result, _ = runner.Run(ctx, "Continue where you left off",
 Errors are returned as Go `error` values. Use `errors.Is` to check categories:
 
 ```go
-import "github.com/anthropics/agentrunner/agentrunner"
+import "github.com/anthropics/agentrunner/go"
 
 result, err := runner.Run(ctx, "prompt")
 if err != nil {

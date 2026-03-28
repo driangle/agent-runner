@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/driangle/agent-runner/agentrunner/channel"
+	"github.com/driangle/agentrunner/go/channel"
 )
 
 // TestSmoke exercises the full channel server binary end-to-end:
@@ -33,7 +33,7 @@ func TestSmoke(t *testing.T) {
 	binDir := t.TempDir()
 	binPath := filepath.Join(binDir, "agentrunner-channel")
 	build := exec.Command("go", "build", "-o", binPath, "./cmd/agentrunner-channel")
-	build.Dir = filepath.Join(findModuleRoot(t), "agentrunner")
+	build.Dir = filepath.Join(findModuleRoot(t), "go")
 	if out, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build failed: %v\n%s", err, out)
 	}

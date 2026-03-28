@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/driangle/agent-runner/agentrunner"
+	"github.com/driangle/agentrunner/go"
 )
 
 // newTestRunner creates a Runner pointing at the given test server.
