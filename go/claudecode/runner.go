@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/driangle/agentrunner/go"
+	"github.com/driangle/agentrunner/go/channel"
 )
 
 // Compile-time interface assertion.
@@ -145,6 +146,19 @@ func (r *Runner) Start(ctx context.Context, prompt string, opts ...agentrunner.O
 		return nil, err
 	}
 
+	// Channel setup: create socket, MCP config, resolve binary.
+	var chSetup *channelSetup
+	if co := GetClaudeOptions(&options); co != nil && co.ChannelEnabled {
+		var err error
+		chSetup, err = setupChannel(ctx, co)
+		if err != nil {
+			cleanup()
+			return nil, fmt.Errorf("channel setup: %w", err)
+		}
+		// Point --mcp-config at our merged config.
+		co.MCPConfig = chSetup.mcpConfigPath
+	}
+
 	args := buildArgs(prompt, &options)
 
 	cmdBuilder := r.cmdBuilder
@@ -187,10 +201,26 @@ func (r *Runner) Start(ctx context.Context, prompt string, opts ...agentrunner.O
 
 	onMessage := GetOnMessage(&options)
 
+	// Build session options (e.g. send function for channels).
+	var sessionOpts []agentrunner.SessionOption
+	if chSetup != nil {
+		sockPath := chSetup.sockPath
+		sessionOpts = append(sessionOpts, agentrunner.WithSendFunc(func(v any) error {
+			msg, ok := v.(channel.ChannelMessage)
+			if !ok {
+				return fmt.Errorf("expected channel.ChannelMessage, got %T", v)
+			}
+			return channel.SendMessage(ctx, sockPath, msg)
+		}))
+	}
+
 	// All pre-flight passed. Create session with the streaming goroutine.
 	return agentrunner.NewSession(ctx, sessionCancel, func(ctx context.Context, msgCh chan<- agentrunner.Message) (*agentrunner.Result, error) {
 		if timeoutCancel != nil {
 			defer timeoutCancel()
+		}
+		if chSetup != nil {
+			defer chSetup.cleanup()
 		}
 
 		scanner := bufio.NewScanner(stdout)
@@ -227,6 +257,11 @@ func (r *Runner) Start(ctx context.Context, prompt string, opts ...agentrunner.O
 				Type:   mapMessageType(parsed.Type),
 				Raw:    lineCopy,
 				Parsed: &parsedCopy,
+			}
+
+			// Detect channel reply tool calls and remap message type.
+			if msg.Type == agentrunner.MessageTypeAssistant && parsedCopy.IsChannelReply() {
+				msg.Type = agentrunner.MessageTypeChannelReply
 			}
 
 			if onMessage != nil {
@@ -281,7 +316,7 @@ func (r *Runner) Start(ctx context.Context, prompt string, opts ...agentrunner.O
 		}
 
 		return nil, wrapWithStderr(agentrunner.ErrNoResult, &stderr, stdoutErrors)
-	}), nil
+	}, sessionOpts...), nil
 }
 
 // Run executes a prompt against the Claude Code CLI and returns the final result.
@@ -366,6 +401,9 @@ func buildArgs(prompt string, opts *agentrunner.Options) []string {
 		}
 		if co.IncludePartialMessages {
 			args = append(args, "--include-partial-messages")
+		}
+		if co.ChannelEnabled {
+			args = append(args, "--dangerously-load-development-channels", "server:agentrunner-channel")
 		}
 	}
 

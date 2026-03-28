@@ -12,8 +12,8 @@ import (
 )
 
 // Session encapsulates a running agent process. It exposes the read side
-// (messages iterable, result, abort) while reserving a send method for future
-// write-side support.
+// (messages iterable, result, abort) and an optional write side (Send) for
+// runners that support two-way communication (e.g. channels).
 type Session struct {
 	// Messages receives parsed messages as they arrive. The channel is closed
 	// when the agent process finishes or is aborted.
@@ -25,6 +25,9 @@ type Session struct {
 
 	// abort cancels the underlying context, terminating the agent process.
 	abort context.CancelFunc
+
+	// sendFunc is injected by runners that support Send (e.g. channels).
+	sendFunc func(any) error
 }
 
 // Result blocks until the agent finishes and returns the final result.
@@ -40,10 +43,24 @@ func (s *Session) Abort() {
 	}
 }
 
-// Send is reserved for future write-side support (e.g. permission responses).
-// It currently returns ErrNotSupported.
-func (s *Session) Send(_ any) error {
-	return ErrNotSupported
+// Send delivers a message to the running agent. The concrete type accepted
+// depends on the runner — for Claude Code with channels enabled, pass a
+// channel.ChannelMessage. Returns ErrNotSupported if the runner does not
+// support sending.
+func (s *Session) Send(v any) error {
+	if s.sendFunc == nil {
+		return ErrNotSupported
+	}
+	return s.sendFunc(v)
+}
+
+// SessionOption configures a Session during creation.
+type SessionOption func(*Session)
+
+// WithSendFunc injects a send implementation into the Session.
+// Used by runner implementations that support two-way communication.
+func WithSendFunc(fn func(any) error) SessionOption {
+	return func(s *Session) { s.sendFunc = fn }
 }
 
 // StreamFunc is the function a Runner implementation provides to drive message
@@ -54,12 +71,15 @@ type StreamFunc func(ctx context.Context, messages chan<- Message) (*Result, err
 // NewSession creates a Session that runs the given stream function in a goroutine.
 // This is intended for Runner implementations, not end users — use Runner.Start
 // to obtain a Session. The cancel function is used as the Session's abort mechanism.
-func NewSession(ctx context.Context, cancel context.CancelFunc, fn StreamFunc) *Session {
+func NewSession(ctx context.Context, cancel context.CancelFunc, fn StreamFunc, opts ...SessionOption) *Session {
 	msgCh := make(chan Message)
 	s := &Session{
 		Messages: msgCh,
 		done:     make(chan struct{}),
 		abort:    cancel,
+	}
+	for _, o := range opts {
+		o(s)
 	}
 	go func() {
 		defer close(s.done)
@@ -233,6 +253,8 @@ const (
 	MessageTypeResult MessageType = "result"
 	// MessageTypeError indicates an error occurred during execution.
 	MessageTypeError MessageType = "error"
+	// MessageTypeChannelReply indicates a channel reply from the agent.
+	MessageTypeChannelReply MessageType = "channel_reply"
 )
 
 // Message is the unit of streaming output from a Session.
@@ -311,6 +333,22 @@ func (m Message) IsError() bool {
 func (m Message) ErrorMessage() string {
 	if a, ok := m.Parsed.(interface{ ErrorMessage() string }); ok {
 		return a.ErrorMessage()
+	}
+	return ""
+}
+
+// ChannelReplyContent returns the reply content from a channel reply message.
+func (m Message) ChannelReplyContent() string {
+	if a, ok := m.Parsed.(interface{ ChannelReplyContent() string }); ok {
+		return a.ChannelReplyContent()
+	}
+	return ""
+}
+
+// ChannelReplyDestination returns the destination ID from a channel reply message.
+func (m Message) ChannelReplyDestination() string {
+	if a, ok := m.Parsed.(interface{ ChannelReplyDestination() string }); ok {
+		return a.ChannelReplyDestination()
 	}
 	return ""
 }

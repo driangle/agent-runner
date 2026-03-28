@@ -45,6 +45,10 @@ func TestHelperProcess(t *testing.T) {
 	case "init_session_only":
 		fmt.Println(`{"type":"system","subtype":"init","session_id":"sess-from-init","model":"claude-sonnet-4-6"}`)
 		fmt.Println(`{"type":"result","subtype":"success","result":"done","is_error":false,"total_cost_usd":0.01,"duration_ms":100,"usage":{"input_tokens":10,"output_tokens":5}}`)
+	case "channel_reply":
+		fmt.Println(`{"type":"system","subtype":"init","session_id":"sess-ch"}`)
+		fmt.Println(`{"type":"assistant","message":{"model":"claude-sonnet-4-6","id":"msg_ch","content":[{"type":"tool_use","name":"mcp__agentrunner-channel__reply","input":{"destination_id":"ci-123","content":"Build fixed!","reply_to":"msg-1"}}]}}`)
+		fmt.Println(`{"type":"result","subtype":"success","result":"done","is_error":false,"total_cost_usd":0.01,"duration_ms":100,"usage":{"input_tokens":10,"output_tokens":5}}`)
 	case "slow":
 		time.Sleep(5 * time.Second)
 		fmt.Println(`{"type":"result","subtype":"success","result":"late","session_id":"sess-slow"}`)
@@ -596,4 +600,94 @@ func TestMessageAccessors(t *testing.T) {
 	if ok {
 		t.Error("ParseMessage returned true for wrong type")
 	}
+}
+
+// --- Channel tests ---
+
+func TestBuildArgsChannelEnabled(t *testing.T) {
+	opts := &agentrunner.Options{}
+	WithChannelEnabled()(opts)
+
+	args := buildArgs("test", opts)
+	joined := strings.Join(args, " ")
+
+	if !strings.Contains(joined, "--dangerously-load-development-channels server:agentrunner-channel") {
+		t.Errorf("args missing channel flag: %v", args)
+	}
+}
+
+func TestBuildArgsChannelDisabled(t *testing.T) {
+	opts := &agentrunner.Options{}
+	args := buildArgs("test", opts)
+	joined := strings.Join(args, " ")
+
+	if strings.Contains(joined, "--dangerously-load-development-channels") {
+		t.Errorf("unexpected --dangerously-load-development-channels in args: %v", args)
+	}
+}
+
+func TestChannelReplyMessageType(t *testing.T) {
+	r := NewRunner(withCommandBuilder(helperBuilder("channel_reply")))
+	session, err := r.Start(context.Background(), "test channel")
+	if err != nil {
+		t.Fatalf("unexpected start error: %v", err)
+	}
+
+	var channelReplies []agentrunner.Message
+	for msg := range session.Messages {
+		if msg.Type == agentrunner.MessageTypeChannelReply {
+			channelReplies = append(channelReplies, msg)
+		}
+	}
+
+	if _, err := session.Result(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(channelReplies) != 1 {
+		t.Fatalf("got %d channel replies, want 1", len(channelReplies))
+	}
+
+	reply := channelReplies[0]
+	if got := reply.ChannelReplyContent(); got != "Build fixed!" {
+		t.Errorf("ChannelReplyContent() = %q, want %q", got, "Build fixed!")
+	}
+	if got := reply.ChannelReplyDestination(); got != "ci-123" {
+		t.Errorf("ChannelReplyDestination() = %q, want %q", got, "ci-123")
+	}
+}
+
+func TestSessionSendWithFunc(t *testing.T) {
+	var received any
+	sendFn := func(v any) error {
+		received = v
+		return nil
+	}
+
+	r := NewRunner(withCommandBuilder(helperBuilder("happy")))
+	session, err := r.Start(context.Background(), "hello")
+	if err != nil {
+		t.Fatalf("unexpected start error: %v", err)
+	}
+
+	// Inject sendFunc directly for unit testing.
+	session = agentrunner.NewSession(context.Background(), func() {},
+		func(ctx context.Context, msgCh chan<- agentrunner.Message) (*agentrunner.Result, error) {
+			return &agentrunner.Result{Text: "ok"}, nil
+		},
+		agentrunner.WithSendFunc(sendFn),
+	)
+
+	err = session.Send("test-value")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if received != "test-value" {
+		t.Errorf("received = %v, want %q", received, "test-value")
+	}
+
+	// Drain messages and get result to avoid goroutine leak.
+	for range session.Messages {
+	}
+	session.Result()
 }

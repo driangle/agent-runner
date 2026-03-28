@@ -113,6 +113,48 @@ func (m *StreamMessage) ErrorMessage() string {
 	return ""
 }
 
+// channelReplyToolName is the MCP tool name for channel replies.
+// MCP tools follow the naming pattern: mcp__<server-name>__<tool-name>.
+const channelReplyToolName = "mcp__agentrunner-channel__reply"
+
+// IsChannelReply reports whether this message contains a channel reply tool call.
+func (m *StreamMessage) IsChannelReply() bool {
+	for _, b := range m.Content {
+		if b.Type == "tool_use" && b.Name == channelReplyToolName {
+			return true
+		}
+	}
+	return false
+}
+
+// ChannelReplyContent returns the reply content from a channel reply tool call.
+func (m *StreamMessage) ChannelReplyContent() string {
+	for _, b := range m.Content {
+		if b.Type == "tool_use" && b.Name == channelReplyToolName {
+			var args struct {
+				Content string `json:"content"`
+			}
+			json.Unmarshal(b.Input, &args)
+			return args.Content
+		}
+	}
+	return ""
+}
+
+// ChannelReplyDestination returns the destination ID from a channel reply tool call.
+func (m *StreamMessage) ChannelReplyDestination() string {
+	for _, b := range m.Content {
+		if b.Type == "tool_use" && b.Name == channelReplyToolName {
+			var args struct {
+				DestinationID string `json:"destination_id"`
+			}
+			json.Unmarshal(b.Input, &args)
+			return args.DestinationID
+		}
+	}
+	return ""
+}
+
 // AssistantMessage is the nested "message" object inside assistant-type stream lines.
 type AssistantMessage struct {
 	Model      string         `json:"model,omitempty"`

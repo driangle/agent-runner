@@ -141,6 +141,50 @@ func TestListenSocketContextCancellation(t *testing.T) {
 	}
 }
 
+func TestSendMessage(t *testing.T) {
+	sockPath := tempSockPath(t)
+	msgCh := make(chan ChannelMessage, 10)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go func() {
+		ListenSocket(ctx, sockPath, msgCh)
+	}()
+
+	// Wait for socket to be ready.
+	conn := waitForSocket(t, sockPath)
+	conn.Close()
+
+	msg := ChannelMessage{
+		Content:    "hello from SendMessage",
+		SourceID:   "send-1",
+		SourceName: "test-client",
+		ReplyTo:    "orig-msg",
+	}
+	if err := SendMessage(ctx, sockPath, msg); err != nil {
+		t.Fatalf("SendMessage: %v", err)
+	}
+
+	select {
+	case got := <-msgCh:
+		if got.Content != msg.Content {
+			t.Errorf("content = %q, want %q", got.Content, msg.Content)
+		}
+		if got.SourceID != msg.SourceID {
+			t.Errorf("source_id = %q, want %q", got.SourceID, msg.SourceID)
+		}
+		if got.SourceName != msg.SourceName {
+			t.Errorf("source_name = %q, want %q", got.SourceName, msg.SourceName)
+		}
+		if got.ReplyTo != msg.ReplyTo {
+			t.Errorf("reply_to = %q, want %q", got.ReplyTo, msg.ReplyTo)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for message")
+	}
+}
+
 func TestListenSocketMalformedJSON(t *testing.T) {
 	sockPath := tempSockPath(t)
 	msgCh := make(chan ChannelMessage, 10)

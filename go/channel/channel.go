@@ -62,6 +62,29 @@ func ListenSocket(ctx context.Context, sockPath string, msgCh chan<- ChannelMess
 	}
 }
 
+// SendMessage connects to the Unix socket at sockPath and sends one
+// ChannelMessage as newline-delimited JSON. The connection is closed after
+// the write. Safe for concurrent use from multiple goroutines.
+func SendMessage(ctx context.Context, sockPath string, msg ChannelMessage) error {
+	var d net.Dialer
+	conn, err := d.DialContext(ctx, "unix", sockPath)
+	if err != nil {
+		return fmt.Errorf("connecting to channel socket: %w", err)
+	}
+	defer conn.Close()
+
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("marshaling channel message: %w", err)
+	}
+	data = append(data, '\n')
+
+	if _, err := conn.Write(data); err != nil {
+		return fmt.Errorf("writing channel message: %w", err)
+	}
+	return nil
+}
+
 // handleConn reads newline-delimited JSON ChannelMessages from a connection.
 func handleConn(ctx context.Context, conn net.Conn, msgCh chan<- ChannelMessage) {
 	scanner := bufio.NewScanner(conn)

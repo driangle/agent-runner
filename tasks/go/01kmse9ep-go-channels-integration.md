@@ -1,7 +1,7 @@
 ---
 id: "01kmse9ep"
 title: "Go library channels integration (session.Send)"
-status: pending
+status: completed
 priority: high
 effort: medium
 parent: "01kma0s35"
@@ -18,13 +18,13 @@ Integrate two-way channel support into the Go agentrunner library. Add `WithChan
 
 ## Tasks
 
-- [ ] Add `WithChannelEnabled()` option to ClaudeOptions
-- [ ] On start: create temp Unix socket, generate MCP config, merge with user mcpConfig, set env var
-- [ ] Wire `--channels server:agentrunner-channel` and `--dangerously-load-development-channels` into arg builder
-- [ ] Implement `session.Send(ctx, ChannelMessage)` — connect to socket and write message
-- [ ] Parse channel reply messages from stream into `MessageTypeChannelReply`
-- [ ] Unit and integration tests
-- [ ] Go example: two-way channel communication
+- [x] Add `WithChannelEnabled()` option to ClaudeOptions
+- [x] On start: create temp Unix socket, generate MCP config, merge with user mcpConfig, set env var
+- [x] Wire `--dangerously-load-development-channels server:agentrunner-channel` into arg builder
+- [x] Implement `session.Send(ctx, ChannelMessage)` — connect to socket and write message
+- [x] Parse channel reply messages from stream into `MessageTypeChannelReply`
+- [x] Unit and integration tests
+- [x] Go example: two-way channel communication
 
 ## Acceptance Criteria
 
