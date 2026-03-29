@@ -1,7 +1,10 @@
-.PHONY: check check-go test-go lint-go build-go check-ts build-ts lint-ts test-ts check-python build-python lint-python test-python docs-dev docs-build cross-compile clean
+.PHONY: check check-lite check-go test-go lint-go build-go check-ts build-ts lint-ts test-ts check-python build-python lint-python test-python docs-dev docs-build cross-compile clean
 
 # Top-level target: check all libraries.
 check: check-go check-ts check-python
+
+# Lite target: build and lint only (no tests).
+check-lite: build-go lint-go build-ts lint-ts build-python lint-python
 
 # --- Go ---
 

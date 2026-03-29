@@ -8,12 +8,23 @@ import {
   NoResultError,
   NotSupportedError,
 } from "../errors.js";
+import {
+  setupChannel,
+  sendMessage,
+  isChannelReply,
+  type ChannelSetup,
+  type ChannelMessage,
+} from "./channel.js";
 import type {
   ClaudeRunnerConfig,
   ClaudeRunOptions,
   SpawnFn,
 } from "./options.js";
-import type { StreamMessage, ResultStreamMessage } from "./types.js";
+import type {
+  StreamMessage,
+  ResultStreamMessage,
+  AssistantStreamMessage,
+} from "./types.js";
 import { parse } from "./parser.js";
 import { buildArgs } from "./args.js";
 import { mapResult } from "./mapping.js";
@@ -25,12 +36,22 @@ export function createClaudeRunner(
   config: ClaudeRunnerConfig = {},
 ): Runner<ClaudeRunOptions, ClaudeMessage> {
   const { spawn: spawnFn, binary } = resolveSpawn(config);
+  const s = (prompt: string, opts?: ClaudeRunOptions) =>
+    start(config, spawnFn, binary, prompt, opts);
 
   return {
-    start: (prompt, options) => start(config, spawnFn, binary, prompt, options),
-    run: (prompt, options) => run(config, spawnFn, binary, prompt, options),
-    runStream: (prompt, options) =>
-      runStream(config, spawnFn, binary, prompt, options),
+    start: s,
+    async run(prompt, options) {
+      const session = s(prompt, options);
+      for await (const _msg of session.messages) {
+      } // drain
+      return session.result;
+    },
+    async *runStream(prompt, options) {
+      const session = s(prompt, options);
+      yield* session.messages;
+      await session.result; // Propagates timeout/cancel/exit errors.
+    },
   };
 }
 
@@ -41,27 +62,30 @@ function start(
   prompt: string,
   options: ClaudeRunOptions = {},
 ): Session<ClaudeMessage> {
+  // Channel setup: create socket, MCP config, resolve binary.
+  let chSetup: ChannelSetup | undefined;
+  if (options.channelEnabled) {
+    chSetup = setupChannel(options.mcpConfig);
+    options = { ...options, mcpConfig: chSetup.mcpConfigPath };
+  }
+
   const args = buildArgs(prompt, options);
   const { signal, clearTimeout: clearTO } = combinedSignal(options);
   const env = options.env ? { ...process.env, ...options.env } : undefined;
   logCmd(config, binary, args, options.workingDir);
-  const child = spawnFn(binary, args, {
-    cwd: options.workingDir,
-    env,
-    signal,
-  });
+  const child = spawnFn(binary, args, { cwd: options.workingDir, env, signal });
 
   if (!child.stdout) {
+    chSetup?.cleanup();
     const err = new NotFoundError(`failed to start ${binary}: no stdout`);
     const rejected = Promise.reject(err);
-    rejected.catch(() => {}); // Prevent unhandled rejection on abandon.
+    rejected.catch(() => {});
     return {
       messages: (async function* () {})(),
       result: rejected,
       abort: () => {},
-      send: () => {
-        throw new NotSupportedError("send is not yet supported");
-      },
+      send: () =>
+        Promise.reject(new NotSupportedError("send is not supported")),
     };
   }
 
@@ -79,14 +103,12 @@ function start(
     resolveResult = resolve;
     rejectResult = reject;
   });
-  resultPromise.catch(() => {}); // Prevent unhandled rejection on abandon.
+  resultPromise.catch(() => {});
 
   async function* messageGenerator(): AsyncGenerator<ClaudeMessage> {
     try {
       for await (const line of rl) {
-        if (signal.aborted) {
-          break;
-        }
+        if (signal.aborted) break;
         if (!line) continue;
 
         let parsed: StreamMessage;
@@ -108,12 +130,16 @@ function start(
           resultMsg = parsed as ResultStreamMessage;
         }
 
-        const msg: ClaudeMessage = {
-          type: parsed.type,
-          raw: line,
-          data: parsed,
-        };
+        // Detect channel reply tool calls and remap message type.
+        let msgType: string = parsed.type;
+        if (
+          parsed.type === "assistant" &&
+          isChannelReply(parsed as AssistantStreamMessage)
+        ) {
+          msgType = "channel_reply";
+        }
 
+        const msg: ClaudeMessage = { type: msgType, raw: line, data: parsed };
         if (options.onMessage) options.onMessage(msg);
         yield msg;
       }
@@ -121,11 +147,9 @@ function start(
       const [exitCode] = await closePromise;
       clearTO();
       if (signal.aborted) {
-        const err = abortError(signal);
-        rejectResult!(err);
+        rejectResult!(abortError(signal));
         return;
       }
-
       if (resultMsg) {
         resolveResult!(mapResult(resultMsg, initSessionId));
         return;
@@ -147,51 +171,23 @@ function start(
       }
       rejectResult!(new NoResultError());
     } finally {
-      if (child.exitCode === null) {
-        child.kill();
-      }
+      if (child.exitCode === null) child.kill();
       clearTO();
+      chSetup?.cleanup();
     }
   }
 
-  const messages = messageGenerator();
+  const sendFn = chSetup
+    ? (input: unknown) => sendMessage(chSetup.sockPath, input as ChannelMessage)
+    : () =>
+        Promise.reject(new NotSupportedError("send requires channelEnabled"));
 
   return {
-    messages,
+    messages: messageGenerator(),
     result: resultPromise,
     abort: () => {
-      if (child.exitCode === null) {
-        child.kill();
-      }
+      if (child.exitCode === null) child.kill();
     },
-    send: () => {
-      throw new NotSupportedError("send is not yet supported");
-    },
+    send: sendFn,
   };
-}
-
-async function run(
-  config: ClaudeRunnerConfig,
-  spawnFn: SpawnFn,
-  binary: string,
-  prompt: string,
-  options: ClaudeRunOptions = {},
-): Promise<Result> {
-  const session = start(config, spawnFn, binary, prompt, options);
-  for await (const _msg of session.messages) {
-  } // drain
-  return session.result;
-}
-
-async function* runStream(
-  config: ClaudeRunnerConfig,
-  spawnFn: SpawnFn,
-  binary: string,
-  prompt: string,
-  options: ClaudeRunOptions = {},
-): AsyncGenerator<ClaudeMessage> {
-  const session = start(config, spawnFn, binary, prompt, options);
-  yield* session.messages;
-  // Propagates timeout/cancel/exit errors to the stream consumer.
-  await session.result;
 }

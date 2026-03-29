@@ -32,3 +32,5 @@ export type {
 export { createOllamaRunner } from "./ollama/runner.js";
 
 export type { OllamaRunnerConfig, OllamaRunOptions } from "./ollama/options.js";
+
+export type { ChannelMessage } from "./claudecode/channel.js";

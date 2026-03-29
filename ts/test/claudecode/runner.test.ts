@@ -357,18 +357,16 @@ describe("start (Session)", () => {
     await expect(session.result).rejects.toThrow();
   });
 
-  it("send throws NotSupportedError", () => {
+  it("send rejects with NotSupportedError when channels not enabled", async () => {
     const runner = createClaudeRunner({ spawn: mockSpawn(happyLines) });
     const session = runner.start("hello");
 
-    expect(() => session.send("test")).toThrow(NotSupportedError);
+    await expect(session.send("test")).rejects.toThrow(NotSupportedError);
 
     // Drain to avoid resource leak.
-    (async () => {
-      for await (const _msg of session.messages) {
-        // drain
-      }
-    })();
+    for await (const _msg of session.messages) {
+      // drain
+    }
   });
 
   it("session ID falls back to init message", async () => {

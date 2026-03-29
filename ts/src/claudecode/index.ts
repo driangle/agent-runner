@@ -10,6 +10,8 @@ export {
   messageIsError,
   messageTextDelta,
   messageThinkingDelta,
+  messageChannelReplyContent,
+  messageChannelReplyDestination,
 } from "./accessors.js";
 export type { ClaudeMessage } from "./accessors.js";
 
@@ -20,6 +22,14 @@ export type {
   ClaudeRunOptions,
   SpawnFn,
 } from "./options.js";
+
+export type { ChannelMessage } from "./channel.js";
+export {
+  CHANNEL_REPLY_TOOL_NAME,
+  isChannelReply,
+  channelReplyContent,
+  channelReplyDestination,
+} from "./channel.js";
 
 export type {
   StreamMessage,

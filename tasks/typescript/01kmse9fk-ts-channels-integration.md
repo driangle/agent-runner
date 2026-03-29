@@ -1,7 +1,7 @@
 ---
 id: "01kmse9fk"
 title: "TypeScript library channels integration (session.send)"
-status: pending
+status: completed
 priority: high
 effort: medium
 parent: "01kma0s35"
@@ -18,12 +18,12 @@ Integrate two-way channel support into the TypeScript agentrunner library. Add `
 
 ## Tasks
 
-- [ ] Add `channelEnabled` option to ClaudeRunOptions
-- [ ] On start: create temp Unix socket, generate MCP config, merge with user mcpConfig, set env var, add CLI flags
-- [ ] Implement `session.send(ChannelMessage)`
-- [ ] Parse channel replies into typed messages on the stream
-- [ ] Unit and integration tests
-- [ ] TypeScript example: two-way channel communication
+- [x] Add `channelEnabled` option to ClaudeRunOptions
+- [x] On start: create temp Unix socket, generate MCP config, merge with user mcpConfig, set env var, add CLI flags
+- [x] Implement `session.send(ChannelMessage)`
+- [x] Parse channel replies into typed messages on the stream
+- [x] Unit and integration tests
+- [x] TypeScript example: two-way channel communication
 
 ## Acceptance Criteria
 

@@ -17,6 +17,7 @@ export type MessageType =
   | "result"
   | "error"
   | "stream_event"
+  | "channel_reply"
   | (string & {});
 
 /** The unit of streaming output from runStream. */
@@ -108,8 +109,8 @@ export interface Session<M extends Message = Message> {
   /** Terminates the agent process. */
   abort(): void;
 
-  /** Reserved for future write-side support. Throws "not yet supported". */
-  send(input: unknown): void;
+  /** Send a message to the running agent (requires channelEnabled). */
+  send(input: unknown): Promise<void>;
 }
 
 /** Runner executes prompts against an AI coding agent. */

@@ -6,8 +6,46 @@ on:
       - "channel/v*"
 
 jobs:
+  check-go:
+    name: Check Go
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - run: make build-go
+      - run: make lint-go
+      - run: make test-go
+
+  check-ts:
+    name: Check TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: cd ts && npm ci
+      - run: make build-ts
+      - run: make lint-ts
+      - run: make test-ts
+
+  check-python:
+    name: Check Python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: make build-python
+      - run: make lint-python
+      - run: make test-python
+
   cross-compile:
     name: Cross-compile binaries
+    needs: [check-go, check-ts, check-python]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

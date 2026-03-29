@@ -5,6 +5,7 @@ import type {
   ResultStreamMessage,
   StreamEventStreamMessage,
 } from "./types.js";
+import { channelReplyContent, channelReplyDestination } from "./channel.js";
 
 /** Typed alias for a Message carrying Claude stream data. */
 export type ClaudeMessage = Message<StreamMessage>;
@@ -82,4 +83,20 @@ export function messageThinkingDelta(msg: ClaudeMessage): string | undefined {
   const delta = se.event?.delta;
   if (delta?.type === "thinking_delta") return delta.thinking;
   return undefined;
+}
+
+/** Return the reply content from a channel reply message, or undefined. */
+export function messageChannelReplyContent(
+  msg: ClaudeMessage,
+): string | undefined {
+  if (msg.data.type !== "assistant") return undefined;
+  return channelReplyContent(msg.data as AssistantStreamMessage);
+}
+
+/** Return the destination ID from a channel reply message, or undefined. */
+export function messageChannelReplyDestination(
+  msg: ClaudeMessage,
+): string | undefined {
+  if (msg.data.type !== "assistant") return undefined;
+  return channelReplyDestination(msg.data as AssistantStreamMessage);
 }

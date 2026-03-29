@@ -29,6 +29,9 @@ export interface ClaudeRunnerConfig {
 
 /** Claude Code-specific options that extend the common RunOptions. */
 export interface ClaudeRunOptions extends RunOptions {
+  /** Enable two-way channel communication via session.send(). */
+  channelEnabled?: boolean;
+
   /** Bypass interactive permission prompts. */
   skipPermissions?: boolean;
 
