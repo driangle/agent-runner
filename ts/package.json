@@ -1,6 +1,6 @@
 {
-  "name": "agentrunner",
-  "version": "0.1.0",
+  "name": "@driangle/agentrunner",
+  "version": "0.0.1",
   "description": "TypeScript library for programmatically invoking AI coding agents",
   "type": "module",
   "main": "./dist/index.js",
@@ -27,6 +27,15 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/driangle/agentrunner.git",
+    "directory": "ts"
+  },
+  "license": "MIT",
   "scripts": {
     "build": "tsc",
     "format": "prettier --write .",
@@ -44,11 +53,11 @@
     "vitest": "^3.0.0"
   },
   "optionalDependencies": {
-    "@agentrunner/channel-darwin-arm64": "0.1.0",
-    "@agentrunner/channel-darwin-x64": "0.1.0",
-    "@agentrunner/channel-linux-arm64": "0.1.0",
-    "@agentrunner/channel-linux-x64": "0.1.0",
-    "@agentrunner/channel-win32-x64": "0.1.0"
+    "@driangle/agentrunner-channel-darwin-arm64": "0.0.1",
+    "@driangle/agentrunner-channel-darwin-x64": "0.0.1",
+    "@driangle/agentrunner-channel-linux-arm64": "0.0.1",
+    "@driangle/agentrunner-channel-linux-x64": "0.0.1",
+    "@driangle/agentrunner-channel-win32-x64": "0.0.1"
   },
   "engines": {
     "node": ">=18"

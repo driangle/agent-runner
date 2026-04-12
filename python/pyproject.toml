@@ -4,14 +4,22 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agentrunner"
-version = "0.1.0"
+version = "0.0.1"
 description = "Python library for programmatically invoking AI coding agents"
 requires-python = ">=3.11"
 license = "MIT"
+authors = [
+    { name = "driangle" },
+]
+
+[project.urls]
+Homepage = "https://github.com/driangle/agentrunner"
+Repository = "https://github.com/driangle/agentrunner"
+Issues = "https://github.com/driangle/agentrunner/issues"
 
 [project.optional-dependencies]
 channel = [
-    "agentrunner-channel>=0.1.0",
+    "agentrunner-channel>=0.0.1",
 ]
 dev = [
     "pytest>=8.0",

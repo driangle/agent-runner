@@ -72,18 +72,23 @@ jobs:
           - goos: darwin
             goarch: arm64
             npm_pkg: channel-darwin-arm64
+            npm_name: "@driangle/agentrunner-channel-darwin-arm64"
           - goos: darwin
             goarch: amd64
             npm_pkg: channel-darwin-x64
+            npm_name: "@driangle/agentrunner-channel-darwin-x64"
           - goos: linux
             goarch: arm64
             npm_pkg: channel-linux-arm64
+            npm_name: "@driangle/agentrunner-channel-linux-arm64"
           - goos: linux
             goarch: amd64
             npm_pkg: channel-linux-x64
+            npm_name: "@driangle/agentrunner-channel-linux-x64"
           - goos: windows
             goarch: amd64
             npm_pkg: channel-win32-x64
+            npm_name: "@driangle/agentrunner-channel-win32-x64"
     steps:
       - uses: actions/checkout@v4
 

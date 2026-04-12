@@ -1,6 +1,6 @@
 {
-  "name": "@agentrunner/channel-linux-x64",
-  "version": "0.1.0",
+  "name": "@driangle/agentrunner-channel-linux-x64",
+  "version": "0.0.1",
   "description": "agentrunner-channel binary for Linux x64",
   "os": ["linux"],
   "cpu": ["x64"],

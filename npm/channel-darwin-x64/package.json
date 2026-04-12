@@ -1,6 +1,6 @@
 {
-  "name": "@agentrunner/channel-darwin-x64",
-  "version": "0.1.0",
+  "name": "@driangle/agentrunner-channel-darwin-x64",
+  "version": "0.0.1",
   "description": "agentrunner-channel binary for macOS x64",
   "os": ["darwin"],
   "cpu": ["x64"],

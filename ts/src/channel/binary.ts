@@ -4,11 +4,11 @@ import { accessSync, constants } from "node:fs";
 import { execFileSync } from "node:child_process";
 
 const PLATFORM_PACKAGES: Record<string, string> = {
-  "darwin-arm64": "@agentrunner/channel-darwin-arm64",
-  "darwin-x64": "@agentrunner/channel-darwin-x64",
-  "linux-arm64": "@agentrunner/channel-linux-arm64",
-  "linux-x64": "@agentrunner/channel-linux-x64",
-  "win32-x64": "@agentrunner/channel-win32-x64",
+  "darwin-arm64": "@driangle/agentrunner-channel-darwin-arm64",
+  "darwin-x64": "@driangle/agentrunner-channel-darwin-x64",
+  "linux-arm64": "@driangle/agentrunner-channel-linux-arm64",
+  "linux-x64": "@driangle/agentrunner-channel-linux-x64",
+  "win32-x64": "@driangle/agentrunner-channel-win32-x64",
 };
 
 /**

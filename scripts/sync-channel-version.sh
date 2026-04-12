@@ -27,7 +27,7 @@ if [ -f "ts/package.json" ]; then
   tmp=$(mktemp)
   jq --arg v "$version" '
     .optionalDependencies |= with_entries(
-      if .key | startswith("@agentrunner/channel-") then .value = $v else . end
+      if .key | startswith("@driangle/agentrunner-channel-") then .value = $v else . end
     )
   ' ts/package.json > "$tmp"
   mv "$tmp" ts/package.json
