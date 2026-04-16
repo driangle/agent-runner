@@ -5,7 +5,7 @@ The Python library lives under `python/` and uses modern Python conventions (dat
 ## Installation
 
 ```sh
-pip install agentrunner
+pip install driangle-agentrunner
 ```
 
 Requires Python >= 3.11.

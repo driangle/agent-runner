@@ -40,7 +40,7 @@ export default defineConfig({
     ],
 
     socialLinks: [
-      { icon: "github", link: "https://github.com/anthropics/agentrunner" },
+      { icon: "github", link: "https://github.com/driangle/agentrunner" },
     ],
   },
 });

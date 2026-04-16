@@ -2,6 +2,8 @@
 
 Language-native libraries for programmatically invoking AI coding agent CLIs.
 
+**[Documentation](https://driangle.github.io/agentrunner/)**
+
 > **Note:** This project is under active development and has not been released yet. APIs may change without notice.
 
 ## Supported Runners
@@ -19,7 +21,7 @@ Language-native libraries for programmatically invoking AI coding agent CLIs.
 |------------|-------------|---------|
 | Go         | [`go/`](go/)       | `agentrunner` |
 | TypeScript | [`ts/`](ts/)       | `agentrunner` |
-| Python     | [`python/`](python/) | `agentrunner` |
+| Python     | [`python/`](python/) | `driangle-agentrunner` |
 | Java       | [`java/`](java/)     | `agentrunner` |
 
 ## Interface

@@ -15,7 +15,7 @@ npm install agentrunner
 ```
 
 ```sh [Python]
-pip install agentrunner
+pip install driangle-agentrunner
 ```
 
 :::
