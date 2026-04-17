@@ -2,22 +2,23 @@
 
 TypeScript library for programmatically invoking AI coding agents. Part of the [agentrunner](../) monorepo.
 
-## Supported CLIs
+## Supported Runners
 
 | Runner      | CLI Version | Status |
 | ----------- | ----------- | ------ |
 | Claude Code | >= 1.0.12   | ✅     |
+| Ollama      | —           | ✅     |
 
 ## Installation
 
 ```bash
-npm install agentrunner
+npm install @driangle/agentrunner
 ```
 
 ## Quick Start
 
 ```typescript
-import { createClaudeRunner } from "agentrunner/claudecode";
+import { createClaudeRunner } from "@driangle/agentrunner/claudecode";
 
 const runner = createClaudeRunner();
 
@@ -40,7 +41,7 @@ for await (const message of runner.runStream("Explain this codebase")) {
 
 Creates a runner for the Claude Code CLI.
 
-**Config options:**
+**Config options (`ClaudeRunnerConfig`):**
 
 | Field    | Type      | Default    | Description                         |
 | -------- | --------- | ---------- | ----------------------------------- |
@@ -48,13 +49,38 @@ Creates a runner for the Claude Code CLI.
 | `spawn`  | `SpawnFn` | —          | Custom spawn function (for testing) |
 | `logger` | `Logger`  | —          | Logger for debug output (opt-in)    |
 
+### `createOllamaRunner(config?)`
+
+Creates a runner for the Ollama HTTP API.
+
+**Config options (`OllamaRunnerConfig`):**
+
+| Field     | Type      | Default                    | Description                         |
+| --------- | --------- | -------------------------- | ----------------------------------- |
+| `baseURL` | `string`  | `"http://localhost:11434"` | Ollama API base URL                 |
+| `fetch`   | `FetchFn` | —                          | Custom fetch function (for testing) |
+| `logger`  | `Logger`  | —                          | Logger for debug output (opt-in)    |
+
 ### `runner.run(prompt, options?)`
 
-Execute a prompt and return the final result.
+Execute a prompt and return the final `Result`.
 
 ### `runner.runStream(prompt, options?)`
 
 Execute a prompt and stream messages as they arrive. Returns `AsyncIterable<Message>`.
+
+### `runner.start(prompt, options?)`
+
+Launch an agent process and return a `Session` for full lifecycle control.
+
+### Session
+
+| Attribute  | Type                     | Description                           |
+| ---------- | ------------------------ | ------------------------------------- |
+| `messages` | `AsyncIterable<Message>` | Iterate messages as they arrive       |
+| `result`   | `Promise<Result>`        | Resolves when the agent finishes      |
+| `abort()`  | —                        | Terminate the agent process           |
+| `send()`   | —                        | Reserved (throws `NotSupportedError`) |
 
 ### Run Options
 
@@ -72,19 +98,37 @@ Common options (all runners):
 | `signal`             | `AbortSignal`           | Cancellation signal               |
 | `skipPermissions`    | `boolean`               | Skip permission prompts           |
 
-Claude-specific options (extend `RunOptions`):
+Claude-specific options (`ClaudeRunOptions` extends `RunOptions`):
 
-| Field             | Type       | Description                        |
-| ----------------- | ---------- | ---------------------------------- |
-| `allowedTools`    | `string[]` | Tools the agent may use            |
-| `disallowedTools` | `string[]` | Tools the agent may not use        |
-| `mcpConfig`       | `string`   | Path to MCP server config          |
-| `jsonSchema`      | `string`   | JSON Schema for structured output  |
-| `maxBudgetUSD`    | `number`   | Cost limit in USD                  |
-| `resume`          | `string`   | Session ID to resume               |
-| `continue`        | `boolean`  | Continue most recent session       |
-| `sessionId`       | `string`   | Specific session ID                |
-| `onMessage`       | `function` | Callback for each streamed message |
+| Field                    | Type       | Description                         |
+| ------------------------ | ---------- | ----------------------------------- |
+| `allowedTools`           | `string[]` | Tools the agent may use             |
+| `disallowedTools`        | `string[]` | Tools the agent may not use         |
+| `mcpConfig`              | `string`   | Path to MCP server config           |
+| `jsonSchema`             | `string`   | JSON Schema for structured output   |
+| `maxBudgetUSD`           | `number`   | Cost limit in USD                   |
+| `resume`                 | `string`   | Session ID to resume                |
+| `continueSession`        | `boolean`  | Continue most recent session        |
+| `sessionId`              | `string`   | Specific session ID                 |
+| `includePartialMessages` | `boolean`  | Stream partial/incremental messages |
+| `onMessage`              | `function` | Callback for each streamed message  |
+
+Ollama-specific options (`OllamaRunOptions` extends `RunOptions`):
+
+| Field         | Type       | Description                        |
+| ------------- | ---------- | ---------------------------------- |
+| `temperature` | `number`   | Sampling temperature               |
+| `numCtx`      | `number`   | Context window size                |
+| `numPredict`  | `number`   | Maximum tokens to generate         |
+| `seed`        | `number`   | Random seed for reproducibility    |
+| `stop`        | `string[]` | Stop sequences                     |
+| `topK`        | `number`   | Top-K sampling parameter           |
+| `topP`        | `number`   | Top-P (nucleus) sampling parameter |
+| `minP`        | `number`   | Min-P sampling parameter           |
+| `format`      | `string`   | `"json"` or a JSON Schema          |
+| `keepAlive`   | `string`   | How long to keep model loaded      |
+| `think`       | `boolean`  | Enable thinking/reasoning          |
+| `onMessage`   | `function` | Callback for each streamed message |
 
 ### Result
 
@@ -104,13 +148,15 @@ All errors extend `RunnerError`:
 
 - `NotFoundError` — CLI binary not found
 - `TimeoutError` — execution timed out
-- `NonZeroExitError` — CLI exited with non-zero code
+- `NonZeroExitError` — CLI exited with non-zero code (has `exitCode`)
 - `ParseError` — failed to parse CLI output
 - `CancelledError` — execution cancelled via AbortSignal
+- `HttpError` — HTTP request failed (has `statusCode`)
+- `NotSupportedError` — operation not supported
 - `NoResultError` — stream ended without a result message
 
 ```typescript
-import { TimeoutError } from "agentrunner";
+import { TimeoutError } from "@driangle/agentrunner";
 
 try {
   await runner.run("complex task", { timeout: 30_000 });
@@ -119,6 +165,16 @@ try {
     console.log("Timed out!");
   }
 }
+```
+
+## Exports
+
+The package uses subpath exports:
+
+```typescript
+import { ... } from "@driangle/agentrunner";           // common types, errors
+import { ... } from "@driangle/agentrunner/claudecode"; // Claude Code runner
+import { ... } from "@driangle/agentrunner/ollama";     // Ollama runner
 ```
 
 ## Development

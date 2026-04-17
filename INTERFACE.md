@@ -56,6 +56,7 @@ Every runner accepts these options. All are optional — runners provide sensibl
 |-------------------|-------------------|------------------------------------------------------|
 | `model`           | `string`          | Model name or alias                                  |
 | `systemPrompt`    | `string`          | System prompt override                               |
+| `appendSystemPrompt` | `string`       | Appended to the default system prompt                |
 | `workingDir`      | `string`          | Working directory for the subprocess / agent          |
 | `env`             | `map[string]string` | Additional environment variables                   |
 | `maxTurns`        | `int`             | Maximum number of agentic turns                      |
@@ -77,7 +78,7 @@ Each runner extends the common options with its own fields. These are passed thr
 | `maxBudgetUSD`     | `float64`  | Cost limit                                       |
 | `resume`           | `string`   | Session ID to resume                             |
 | `continue`         | `bool`     | Continue the most recent session                 |
-| `appendSystemPrompt` | `string` | Appended to the default system prompt            |
+| `includePartialMessages` | `bool` | Stream partial/incremental messages            |
 
 #### Gemini CLI
 
@@ -112,8 +113,12 @@ Each runner extends the common options with its own fields. These are passed thr
 | `temperature`      | `float64`         | Sampling temperature                       |
 | `topK`             | `int`             | Top-K sampling parameter                   |
 | `topP`             | `float64`         | Top-P (nucleus) sampling parameter         |
+| `minP`             | `float64`         | Min-P sampling parameter                   |
 | `seed`             | `int`             | Random seed for reproducibility            |
 | `numCtx`           | `int`             | Context window size                        |
+| `numPredict`       | `int`             | Maximum tokens to generate                 |
+| `stop`             | `[]string`        | Stop sequences                             |
+| `think`            | `bool`            | Enable thinking/reasoning for supported models |
 | `tools`            | `[]Tool`          | Function definitions for tool calling      |
 
 ---

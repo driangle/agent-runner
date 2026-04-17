@@ -48,7 +48,7 @@ Wait for the `system` init message before sending — this confirms the MCP serv
 ::: code-group
 
 ```go [Go]
-import "github.com/anthropics/agentrunner/go/channel"
+import "github.com/driangle/agentrunner/go/channel"
 
 for msg := range session.Messages {
     if msg.Type == agentrunner.MessageTypeSystem {
@@ -108,7 +108,7 @@ for msg := range session.Messages {
 import {
   messageChannelReplyContent,
   messageChannelReplyDestination,
-} from "agentrunner/claudecode";
+} from "@driangle/agentrunner/claudecode";
 
 for await (const msg of session.messages) {
   if (msg.type === "channel_reply") {
@@ -203,4 +203,4 @@ The channel feature requires the `agentrunner-channel` binary. It is resolved in
 
 ## Full Example (Experimental)
 
-See [`examples/ts/channel/main.ts`](https://github.com/anthropics/agentrunner/blob/main/examples/ts/channel/main.ts) for a complete working example that sends a CI notification and prints Claude's reply.
+See [`examples/ts/channel/main.ts`](https://github.com/driangle/agentrunner/blob/main/examples/ts/channel/main.ts) for a complete working example that sends a CI notification and prints Claude's reply.

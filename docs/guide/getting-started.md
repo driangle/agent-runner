@@ -7,11 +7,11 @@ agentrunner provides language-native libraries for programmatically invoking AI 
 ::: code-group
 
 ```sh [Go]
-go get github.com/anthropics/agentrunner/go
+go get github.com/driangle/agentrunner/go
 ```
 
 ```sh [TypeScript]
-npm install agentrunner
+npm install @driangle/agentrunner
 ```
 
 ```sh [Python]
@@ -41,7 +41,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/anthropics/agentrunner/go/claudecode"
+	"github.com/driangle/agentrunner/go/claudecode"
 )
 
 func main() {
@@ -55,7 +55,7 @@ func main() {
 ```
 
 ```ts [TypeScript]
-import { createClaudeRunner } from "agentrunner/claudecode";
+import { createClaudeRunner } from "@driangle/agentrunner/claudecode";
 
 const runner = createClaudeRunner();
 const result = await runner.run("What is 2+2?");

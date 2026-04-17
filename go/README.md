@@ -1,11 +1,19 @@
-# agent-runner/go
+# agentrunner/go
 
-Go library for programmatically invoking AI coding agents. Currently supports [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code).
+Go library for programmatically invoking AI coding agents. Part of the [agentrunner](../) monorepo.
+
+## Supported Runners
+
+| Runner      | Status |
+|-------------|--------|
+| Claude Code | ✅ (CLI >= 1.0.12) |
+| Ollama      | ✅ |
 
 ## Requirements
 
 - Go 1.22+
-- Claude Code CLI >= 1.0.12
+- Claude Code CLI >= 1.0.12 (for Claude Code runner)
+- Ollama server running (for Ollama runner)
 
 ## Installation
 
@@ -95,6 +103,26 @@ claudecode.WithDisallowedTools("Write")
 claudecode.WithMCPConfig("/path/to/mcp.json")
 claudecode.WithJSONSchema(`{"type": "object", "properties": {"answer": {"type": "string"}}}`)
 claudecode.WithMaxBudgetUSD(1.0)
+claudecode.WithResume("session-id")
+claudecode.WithContinue()
+claudecode.WithIncludePartialMessages()
+claudecode.WithChannelEnabled()
+```
+
+### Ollama Options
+
+```go
+ollama.WithTemperature(0.7)
+ollama.WithNumCtx(4096)
+ollama.WithNumPredict(256)
+ollama.WithSeed(42)
+ollama.WithStop("END")
+ollama.WithTopK(40)
+ollama.WithTopP(0.9)
+ollama.WithMinP(0.05)
+ollama.WithFormat("json")
+ollama.WithKeepAlive("5m")
+ollama.WithThink(true)
 ```
 
 ## Usage Examples

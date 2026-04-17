@@ -16,7 +16,7 @@ Python library for programmatically invoking AI coding agents. Part of the [agen
 ## Installation
 
 ```bash
-pip install agentrunner
+pip install driangle-agentrunner
 ```
 
 ## Quick Start
@@ -97,7 +97,6 @@ Claude-specific options (`ClaudeRunOptions` extends `RunOptions`):
 | `continue_session`       | `bool`      | Continue most recent session       |
 | `session_id`             | `str`       | Specific session ID                |
 | `include_partial_messages`| `bool`     | Stream partial/incremental messages|
-| `on_message`             | `callable`  | Callback for each streamed message |
 
 ### Result
 

@@ -47,6 +47,7 @@ Every runner accepts these options. All are optional.
 |-------------------|---------------------|----------------------------------------|
 | `model`           | `string`            | Model name or alias                    |
 | `systemPrompt`    | `string`            | System prompt override                 |
+| `appendSystemPrompt` | `string`         | Appended to the default system prompt  |
 | `workingDir`      | `string`            | Working directory for the subprocess   |
 | `env`             | `map[string]string` | Additional environment variables       |
 | `maxTurns`        | `int`               | Maximum number of agentic turns        |
@@ -97,6 +98,7 @@ The unit of streaming output. Each message has a type and carries content or met
 | `tool_result` | Output from a tool execution                         | After tool execution |
 | `result`      | Final result with text, usage, cost, duration        | End of stream        |
 | `error`       | Error or warning                                     | Any time             |
+| `channel_reply` | Reply from the agent to a [channel](/guide/channels) message | During generation |
 
 ### Typed Accessors
 

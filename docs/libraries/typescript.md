@@ -5,7 +5,7 @@ The TypeScript library lives under `ts/` and ships as an ESM-only npm package.
 ## Installation
 
 ```sh
-npm install agentrunner
+npm install @driangle/agentrunner
 ```
 
 Requires Node.js >= 18.
@@ -15,7 +15,7 @@ Requires Node.js >= 18.
 ### Claude Code
 
 ```ts
-import { createClaudeRunner } from "agentrunner/claudecode";
+import { createClaudeRunner } from "@driangle/agentrunner/claudecode";
 
 const runner = createClaudeRunner();
 
@@ -29,7 +29,7 @@ const runner = createClaudeRunner({
 ### Ollama
 
 ```ts
-import { createOllamaRunner } from "agentrunner/ollama";
+import { createOllamaRunner } from "@driangle/agentrunner/ollama";
 
 const runner = createOllamaRunner();
 
@@ -58,7 +58,7 @@ console.log(`Tokens: ${result.usage.inputTokens} in, ${result.usage.outputTokens
 ### Using start (full session control)
 
 ```ts
-import { messageText, messageToolName } from "agentrunner/claudecode";
+import { messageText, messageToolName } from "@driangle/agentrunner/claudecode";
 
 const session = runner.start("Explain this codebase", {
   workingDir: "/path/to/project",
@@ -164,7 +164,7 @@ import {
   TimeoutError,
   NonZeroExitError,
   CancelledError,
-} from "agentrunner";
+} from "@driangle/agentrunner";
 
 try {
   await runner.run("prompt");
@@ -195,7 +195,7 @@ import {
   messageIsError,
   messageTextDelta,
   messageThinkingDelta,
-} from "agentrunner/claudecode";
+} from "@driangle/agentrunner/claudecode";
 
 messageText(msg);          // text content
 messageThinking(msg);      // reasoning content
@@ -212,9 +212,9 @@ messageThinkingDelta(msg); // incremental thinking (partial messages)
 The package uses subpath exports:
 
 ```ts
-import { ... } from "agentrunner";           // common types, errors
-import { ... } from "agentrunner/claudecode"; // Claude Code runner
-import { ... } from "agentrunner/ollama";     // Ollama runner
+import { ... } from "@driangle/agentrunner";           // common types, errors
+import { ... } from "@driangle/agentrunner/claudecode"; // Claude Code runner
+import { ... } from "@driangle/agentrunner/ollama";     // Ollama runner
 ```
 
 ## Logging
