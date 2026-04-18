@@ -22,7 +22,7 @@ def build_args(prompt: str, options: ClaudeRunOptions | None = None) -> list[str
         args.extend(["--append-system-prompt", options.append_system_prompt])
     if options.max_turns is not None and options.max_turns > 0:
         args.extend(["--max-turns", str(options.max_turns)])
-    if options.skip_permissions:
+    if options.dangerously_skip_permissions:
         args.append("--dangerously-skip-permissions")
 
     # Claude-specific options.

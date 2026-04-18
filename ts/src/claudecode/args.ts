@@ -25,7 +25,7 @@ export function buildArgs(
   if (options.maxTurns != null && options.maxTurns > 0) {
     args.push("--max-turns", String(options.maxTurns));
   }
-  if (options.skipPermissions) {
+  if (options.dangerouslySkipPermissions) {
     args.push("--dangerously-skip-permissions");
   }
 

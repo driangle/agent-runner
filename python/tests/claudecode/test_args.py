@@ -37,8 +37,8 @@ class TestBuildArgs:
         args = build_args("hello", opts)
         assert "--max-turns" not in args
 
-    def test_skip_permissions(self):
-        opts = ClaudeRunOptions(skip_permissions=True)
+    def test_dangerously_skip_permissions(self):
+        opts = ClaudeRunOptions(dangerously_skip_permissions=True)
         args = build_args("hello", opts)
         assert "--dangerously-skip-permissions" in args
 

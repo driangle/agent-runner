@@ -39,7 +39,7 @@ export interface ClaudeRunOptions extends RunOptions {
   channelLogLevel?: "debug" | "info" | "warn" | "error";
 
   /** Bypass interactive permission prompts. */
-  skipPermissions?: boolean;
+  dangerouslySkipPermissions?: boolean;
 
   /** Tools the agent may use. */
   allowedTools?: string[];

@@ -96,7 +96,7 @@ async function main() {
   // and the reply tool never becomes callable. Mirror main.ts: minimal opts.
   const session = runner.start(prompt, {
     channelEnabled: true,
-    skipPermissions: true,
+    dangerouslySkipPermissions: true,
     maxTurns: 10,
     timeout: 120_000,
     includePartialMessages: true,

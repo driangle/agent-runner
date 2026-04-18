@@ -237,7 +237,7 @@ func TestBuildArgsAllCommonOptions(t *testing.T) {
 		SystemPrompt:       "You are helpful",
 		AppendSystemPrompt: "Be concise",
 		MaxTurns:           5,
-		SkipPermissions:    true,
+		DangerouslySkipPermissions: true,
 	}
 	args := buildArgs("test prompt", opts)
 

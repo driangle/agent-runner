@@ -65,7 +65,7 @@ async function main() {
 
   const session = runner.start(prompt, {
     channelEnabled: true,
-    skipPermissions: true,
+    dangerouslySkipPermissions: true,
     maxTurns: 10,
     timeout: 60_000,
     includePartialMessages: true,

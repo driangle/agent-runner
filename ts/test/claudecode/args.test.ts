@@ -20,7 +20,7 @@ describe("buildArgs", () => {
       systemPrompt: "You are helpful",
       appendSystemPrompt: "Be concise",
       maxTurns: 5,
-      skipPermissions: true,
+      dangerouslySkipPermissions: true,
     });
 
     const joined = args.join(" ");

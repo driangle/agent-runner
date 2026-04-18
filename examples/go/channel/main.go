@@ -64,7 +64,7 @@ func run(runnerOpts []claudecode.RunnerOption) error {
 
 	session, err := runner.Start(ctx, prompt,
 		claudecode.WithChannelEnabled(),
-		agentrunner.WithSkipPermissions(),
+		agentrunner.WithDangerouslySkipPermissions(),
 		agentrunner.WithMaxTurns(10),
 		agentrunner.WithTimeout(60*time.Second),
 	)

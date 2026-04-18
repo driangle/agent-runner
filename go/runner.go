@@ -131,8 +131,8 @@ type Options struct {
 	// Timeout sets the overall execution timeout.
 	Timeout time.Duration
 
-	// SkipPermissions bypasses interactive permission prompts.
-	SkipPermissions bool
+	// DangerouslySkipPermissions bypasses interactive permission prompts.
+	DangerouslySkipPermissions bool
 
 	// extra holds runner-specific options keyed by runner-defined types.
 	extra map[any]any
@@ -191,9 +191,9 @@ func WithTimeout(d time.Duration) Option {
 	return func(o *Options) { o.Timeout = d }
 }
 
-// WithSkipPermissions bypasses interactive permission prompts.
-func WithSkipPermissions() Option {
-	return func(o *Options) { o.SkipPermissions = true }
+// WithDangerouslySkipPermissions bypasses interactive permission prompts.
+func WithDangerouslySkipPermissions() Option {
+	return func(o *Options) { o.DangerouslySkipPermissions = true }
 }
 
 // Result is the final output from a runner invocation.

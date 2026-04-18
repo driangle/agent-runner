@@ -148,7 +148,7 @@ class RunOptions:
     env: dict[str, str] | None = None
     max_turns: int | None = None
     timeout: float | None = None
-    skip_permissions: bool = False
+    dangerously_skip_permissions: bool = False
 
 
 @runtime_checkable

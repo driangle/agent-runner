@@ -370,7 +370,7 @@ func buildArgs(prompt string, opts *agentrunner.Options) []string {
 	if opts.MaxTurns > 0 {
 		args = append(args, "--max-turns", strconv.Itoa(opts.MaxTurns))
 	}
-	if opts.SkipPermissions {
+	if opts.DangerouslySkipPermissions {
 		args = append(args, "--dangerously-skip-permissions")
 	}
 
