@@ -48,7 +48,7 @@ test-python:
 # --- Channel binary ---
 
 install-channel:
-	cd go && go build -o /tmp/agentrunner-channel ./cmd/agentrunner-channel
+	cd go && go build -o /tmp/agentrunner-mcp ./cmd/agentrunner-mcp
 
 # --- Cross-compilation ---
 
@@ -59,9 +59,9 @@ cross-compile:
 	@for platform in $(CHANNEL_PLATFORMS); do \
 		os=$${platform%/*}; arch=$${platform#*/}; \
 		ext=""; [ "$$os" = "windows" ] && ext=".exe"; \
-		out="dist/agentrunner-channel-$${os}-$${arch}$${ext}"; \
+		out="dist/agentrunner-mcp-$${os}-$${arch}$${ext}"; \
 		echo "Building $$out..."; \
-		cd go && GOOS=$$os GOARCH=$$arch go build -o ../$$out -trimpath -ldflags="-s -w" ./cmd/agentrunner-channel && cd ..; \
+		cd go && GOOS=$$os GOARCH=$$arch go build -o ../$$out -trimpath -ldflags="-s -w" ./cmd/agentrunner-mcp && cd ..; \
 	done
 
 clean:

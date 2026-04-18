@@ -31,8 +31,8 @@ func TestSmoke(t *testing.T) {
 
 	// Build the binary.
 	binDir := t.TempDir()
-	binPath := filepath.Join(binDir, "agentrunner-channel")
-	build := exec.Command("go", "build", "-o", binPath, "./cmd/agentrunner-channel")
+	binPath := filepath.Join(binDir, "agentrunner-mcp")
+	build := exec.Command("go", "build", "-o", binPath, "./cmd/agentrunner-mcp")
 	build.Dir = filepath.Join(findModuleRoot(t), "go")
 	if out, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build failed: %v\n%s", err, out)
@@ -51,7 +51,7 @@ func TestSmoke(t *testing.T) {
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, binPath)
-	cmd.Env = append(os.Environ(), "AGENTRUNNER_CHANNEL_SOCK="+sockPath)
+	cmd.Env = append(os.Environ(), "AGENTRUNNER_MCP_SOCK="+sockPath)
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {

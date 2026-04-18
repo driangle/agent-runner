@@ -37,15 +37,15 @@ func TestSetupChannel(t *testing.T) {
 		t.Fatalf("parsing MCP config: %v", err)
 	}
 
-	srv, ok := cfg.MCPServers["agentrunner-channel"]
+	srv, ok := cfg.MCPServers["agentrunner-mcp"]
 	if !ok {
-		t.Fatal("agentrunner-channel server not in MCP config")
+		t.Fatal("agentrunner-mcp server not in MCP config")
 	}
 	if srv.Command == "" {
 		t.Error("command is empty")
 	}
-	if srv.Env["AGENTRUNNER_CHANNEL_SOCK"] != cs.sockPath {
-		t.Errorf("sock env = %q, want %q", srv.Env["AGENTRUNNER_CHANNEL_SOCK"], cs.sockPath)
+	if srv.Env["AGENTRUNNER_MCP_SOCK"] != cs.sockPath {
+		t.Errorf("sock env = %q, want %q", srv.Env["AGENTRUNNER_MCP_SOCK"], cs.sockPath)
 	}
 }
 
@@ -97,8 +97,8 @@ func TestSetupChannelMergesUserConfig(t *testing.T) {
 	}
 
 	// Both servers should be present.
-	if _, ok := cfg.MCPServers["agentrunner-channel"]; !ok {
-		t.Error("agentrunner-channel server missing from merged config")
+	if _, ok := cfg.MCPServers["agentrunner-mcp"]; !ok {
+		t.Error("agentrunner-mcp server missing from merged config")
 	}
 	if srv, ok := cfg.MCPServers["my-server"]; !ok {
 		t.Error("my-server missing from merged config")

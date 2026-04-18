@@ -13,7 +13,7 @@ import (
 const (
 	protocolVersion = "2025-03-26"
 	// ServerName is the exported MCP server name.
-	ServerName = "agentrunner-channel"
+	ServerName = "agentrunner-mcp"
 	// ServerVersion is the exported MCP server version.
 	ServerVersion = "0.1.1"
 

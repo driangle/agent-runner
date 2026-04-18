@@ -115,7 +115,7 @@ func (m *StreamMessage) ErrorMessage() string {
 
 // channelReplyToolName is the MCP tool name for channel replies.
 // MCP tools follow the naming pattern: mcp__<server-name>__<tool-name>.
-const channelReplyToolName = "mcp__agentrunner-channel__reply"
+const channelReplyToolName = "mcp__agentrunner-mcp__reply"
 
 // IsChannelReply reports whether this message contains a channel reply tool call.
 func (m *StreamMessage) IsChannelReply() bool {

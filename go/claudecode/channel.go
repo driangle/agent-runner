@@ -30,7 +30,7 @@ type channelSetup struct {
 }
 
 // setupChannel prepares the channel infrastructure for a Claude CLI invocation.
-// It resolves the agentrunner-channel binary, creates a temp directory with a
+// It resolves the agentrunner-mcp binary, creates a temp directory with a
 // Unix socket path and MCP config file, and optionally merges the user's
 // existing MCP config.
 func setupChannel(ctx context.Context, co *ClaudeOptions) (*channelSetup, error) {
@@ -48,18 +48,18 @@ func setupChannel(ctx context.Context, co *ClaudeOptions) (*channelSetup, error)
 	sockPath := filepath.Join(tmpDir, "ch.sock")
 
 	env := map[string]string{
-		"AGENTRUNNER_CHANNEL_SOCK": sockPath,
+		"AGENTRUNNER_MCP_SOCK": sockPath,
 	}
 	if co.ChannelLogFile != "" {
-		env["AGENTRUNNER_CHANNEL_LOG"] = co.ChannelLogFile
+		env["AGENTRUNNER_MCP_LOG"] = co.ChannelLogFile
 	}
 	if co.ChannelLogLevel != "" {
-		env["AGENTRUNNER_CHANNEL_LOG_LEVEL"] = co.ChannelLogLevel
+		env["AGENTRUNNER_MCP_LOG_LEVEL"] = co.ChannelLogLevel
 	}
 
 	cfg := mcpConfig{
 		MCPServers: map[string]mcpServerConfig{
-			"agentrunner-channel": {
+			"agentrunner-mcp": {
 				Command: binPath,
 				Env:     env,
 			},
@@ -79,7 +79,7 @@ func setupChannel(ctx context.Context, co *ClaudeOptions) (*channelSetup, error)
 			return nil, fmt.Errorf("parsing user MCP config: %w", err)
 		}
 		for k, v := range userCfg.MCPServers {
-			if k != "agentrunner-channel" {
+			if k != "agentrunner-mcp" {
 				cfg.MCPServers[k] = v
 			}
 		}

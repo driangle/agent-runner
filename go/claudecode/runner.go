@@ -414,8 +414,8 @@ func buildArgs(prompt string, opts *agentrunner.Options) []string {
 			// mode is not applied, so channels only work if the flag is enabled on
 			// the user's account. See docs/guide/channels.md.
 			args = append(args,
-				"--channels", "server:agentrunner-channel",
-				"--dangerously-load-development-channels", "server:agentrunner-channel",
+				"--channels", "server:agentrunner-mcp",
+				"--dangerously-load-development-channels", "server:agentrunner-mcp",
 				"--strict-mcp-config",
 			)
 		}

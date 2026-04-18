@@ -16,25 +16,25 @@ var (
 	cacheSubdir = filepath.Join("agentrunner", "bin")
 )
 
-// BinaryPath returns the path to the agentrunner-channel binary.
+// BinaryPath returns the path to the agentrunner-mcp binary.
 //
 // Resolution order:
-//  1. AGENTRUNNER_CHANNEL_BIN environment variable
-//  2. agentrunner-channel on $PATH (via exec.LookPath)
+//  1. AGENTRUNNER_MCP_BIN environment variable
+//  2. agentrunner-mcp on $PATH (via exec.LookPath)
 //  3. Build from source into the user cache directory (one-time)
 func BinaryPath(ctx context.Context) (string, error) {
-	if p := os.Getenv("AGENTRUNNER_CHANNEL_BIN"); p != "" {
+	if p := os.Getenv("AGENTRUNNER_MCP_BIN"); p != "" {
 		return p, nil
 	}
 
-	if p, err := exec.LookPath("agentrunner-channel"); err == nil {
+	if p, err := exec.LookPath("agentrunner-mcp"); err == nil {
 		return p, nil
 	}
 
 	return buildFromSource(ctx)
 }
 
-// buildFromSource compiles the agentrunner-channel binary into the user's
+// buildFromSource compiles the agentrunner-mcp binary into the user's
 // cache directory. The build runs at most once per process.
 func buildFromSource(ctx context.Context) (string, error) {
 	buildOnce.Do(func() {
@@ -50,13 +50,13 @@ func buildFromSource(ctx context.Context) (string, error) {
 			return
 		}
 
-		binPath := filepath.Join(binDir, "agentrunner-channel")
+		binPath := filepath.Join(binDir, "agentrunner-mcp")
 		cmd := exec.CommandContext(ctx, "go", "build", "-o", binPath,
 			"-trimpath", "-ldflags=-s -w",
-			"github.com/driangle/agentrunner/go/cmd/agentrunner-channel",
+			"github.com/driangle/agentrunner/go/cmd/agentrunner-mcp",
 		)
 		if out, err := cmd.CombinedOutput(); err != nil {
-			buildErr = fmt.Errorf("building agentrunner-channel: %w\n%s", err, out)
+			buildErr = fmt.Errorf("building agentrunner-mcp: %w\n%s", err, out)
 			return
 		}
 

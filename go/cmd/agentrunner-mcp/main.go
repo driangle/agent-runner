@@ -1,4 +1,4 @@
-// Binary agentrunner-channel is a lightweight MCP server that bridges Unix socket
+// Binary agentrunner-mcp is a lightweight MCP server that bridges Unix socket
 // IPC from agentrunner libraries to Claude Code's channel system via stdio JSON-RPC.
 package main
 
@@ -16,7 +16,7 @@ import (
 )
 
 // printVersion prints the server version and, when available, VCS build
-// info (git commit, build time). Works without AGENTRUNNER_CHANNEL_SOCK.
+// info (git commit, build time). Works without AGENTRUNNER_MCP_SOCK.
 func printVersion() {
 	fmt.Printf("%s %s\n", channel.ServerName, channel.ServerVersion)
 	info, ok := debug.ReadBuildInfo()
@@ -54,7 +54,7 @@ func printVersion() {
 }
 
 func parseLogLevel() slog.Level {
-	switch strings.ToLower(os.Getenv("AGENTRUNNER_CHANNEL_LOG_LEVEL")) {
+	switch strings.ToLower(os.Getenv("AGENTRUNNER_MCP_LOG_LEVEL")) {
 	case "debug":
 		return slog.LevelDebug
 	case "warn", "warning":
@@ -76,9 +76,9 @@ func main() {
 		}
 	}
 
-	sockPath := os.Getenv("AGENTRUNNER_CHANNEL_SOCK")
+	sockPath := os.Getenv("AGENTRUNNER_MCP_SOCK")
 	if sockPath == "" {
-		fmt.Fprintln(os.Stderr, "AGENTRUNNER_CHANNEL_SOCK environment variable is required")
+		fmt.Fprintln(os.Stderr, "AGENTRUNNER_MCP_SOCK environment variable is required")
 		os.Exit(1)
 	}
 
@@ -86,10 +86,10 @@ func main() {
 	defer cancel()
 
 	var logger *slog.Logger
-	if logPath := os.Getenv("AGENTRUNNER_CHANNEL_LOG"); logPath != "" {
+	if logPath := os.Getenv("AGENTRUNNER_MCP_LOG"); logPath != "" {
 		f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "agentrunner-channel: open log file: %v\n", err)
+			fmt.Fprintf(os.Stderr, "agentrunner-mcp: open log file: %v\n", err)
 			os.Exit(1)
 		}
 		defer f.Close()
@@ -98,7 +98,7 @@ func main() {
 
 	srv := channel.NewServer(sockPath, os.Stdin, os.Stdout, logger)
 	if err := srv.Run(ctx); err != nil {
-		fmt.Fprintf(os.Stderr, "agentrunner-channel: %v\n", err)
+		fmt.Fprintf(os.Stderr, "agentrunner-mcp: %v\n", err)
 		os.Exit(1)
 	}
 }

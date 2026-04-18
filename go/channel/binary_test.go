@@ -7,19 +7,19 @@ import (
 )
 
 func TestBinaryPath_EnvOverride(t *testing.T) {
-	t.Setenv("AGENTRUNNER_CHANNEL_BIN", "/custom/agentrunner-channel")
+	t.Setenv("AGENTRUNNER_MCP_BIN", "/custom/agentrunner-mcp")
 	path, err := BinaryPath(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if path != "/custom/agentrunner-channel" {
-		t.Errorf("got %q, want /custom/agentrunner-channel", path)
+	if path != "/custom/agentrunner-mcp" {
+		t.Errorf("got %q, want /custom/agentrunner-mcp", path)
 	}
 }
 
 func TestBinaryPath_EnvTakesPrecedence(t *testing.T) {
 	// Even if the binary is on PATH, the env var should win.
-	t.Setenv("AGENTRUNNER_CHANNEL_BIN", "/override/path")
+	t.Setenv("AGENTRUNNER_MCP_BIN", "/override/path")
 	t.Setenv("PATH", os.Getenv("PATH"))
 	path, err := BinaryPath(context.Background())
 	if err != nil {

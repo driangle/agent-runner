@@ -47,7 +47,7 @@ func TestHelperProcess(t *testing.T) {
 		fmt.Println(`{"type":"result","subtype":"success","result":"done","is_error":false,"total_cost_usd":0.01,"duration_ms":100,"usage":{"input_tokens":10,"output_tokens":5}}`)
 	case "channel_reply":
 		fmt.Println(`{"type":"system","subtype":"init","session_id":"sess-ch"}`)
-		fmt.Println(`{"type":"assistant","message":{"model":"claude-sonnet-4-6","id":"msg_ch","content":[{"type":"tool_use","name":"mcp__agentrunner-channel__reply","input":{"destination_id":"ci-123","content":"Build fixed!","reply_to":"msg-1"}}]}}`)
+		fmt.Println(`{"type":"assistant","message":{"model":"claude-sonnet-4-6","id":"msg_ch","content":[{"type":"tool_use","name":"mcp__agentrunner-mcp__reply","input":{"destination_id":"ci-123","content":"Build fixed!","reply_to":"msg-1"}}]}}`)
 		fmt.Println(`{"type":"result","subtype":"success","result":"done","is_error":false,"total_cost_usd":0.01,"duration_ms":100,"usage":{"input_tokens":10,"output_tokens":5}}`)
 	case "slow":
 		time.Sleep(5 * time.Second)
@@ -611,10 +611,10 @@ func TestBuildArgsChannelEnabled(t *testing.T) {
 	args := buildArgs("test", opts)
 	joined := strings.Join(args, " ")
 
-	if !strings.Contains(joined, "--channels server:agentrunner-channel") {
+	if !strings.Contains(joined, "--channels server:agentrunner-mcp") {
 		t.Errorf("args missing --channels flag: %v", args)
 	}
-	if !strings.Contains(joined, "--dangerously-load-development-channels server:agentrunner-channel") {
+	if !strings.Contains(joined, "--dangerously-load-development-channels server:agentrunner-mcp") {
 		t.Errorf("args missing --dangerously-load-development-channels flag: %v", args)
 	}
 	if !strings.Contains(joined, "--strict-mcp-config") {
