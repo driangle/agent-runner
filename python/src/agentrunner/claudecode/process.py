@@ -52,6 +52,7 @@ async def default_spawn(
         stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
+        limit=10 * 1024 * 1024,  # 10 MiB — default 64 KiB is too small for large JSON lines
     )
 
 
