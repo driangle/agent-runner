@@ -602,6 +602,53 @@ func TestMessageAccessors(t *testing.T) {
 	}
 }
 
+// --- PermissionMode tests ---
+
+func TestBuildArgsPermissionMode(t *testing.T) {
+	opts := &agentrunner.Options{}
+	WithPermissionMode("auto")(opts)
+	args := buildArgs("test", opts)
+	joined := strings.Join(args, " ")
+
+	if !strings.Contains(joined, "--permission-mode auto") {
+		t.Errorf("args missing --permission-mode auto: %v", args)
+	}
+	if strings.Contains(joined, "--dangerously-skip-permissions") {
+		t.Errorf("unexpected --dangerously-skip-permissions in args: %v", args)
+	}
+}
+
+func TestBuildArgsPermissionModePrecedence(t *testing.T) {
+	opts := &agentrunner.Options{
+		DangerouslySkipPermissions: true,
+	}
+	WithPermissionMode("plan")(opts)
+	args := buildArgs("test", opts)
+	joined := strings.Join(args, " ")
+
+	if !strings.Contains(joined, "--permission-mode plan") {
+		t.Errorf("args missing --permission-mode plan: %v", args)
+	}
+	if strings.Contains(joined, "--dangerously-skip-permissions") {
+		t.Errorf("--dangerously-skip-permissions should not appear when PermissionMode is set: %v", args)
+	}
+}
+
+func TestBuildArgsDangerouslySkipPermissionsBackcompat(t *testing.T) {
+	opts := &agentrunner.Options{
+		DangerouslySkipPermissions: true,
+	}
+	args := buildArgs("test", opts)
+	joined := strings.Join(args, " ")
+
+	if !strings.Contains(joined, "--dangerously-skip-permissions") {
+		t.Errorf("args missing --dangerously-skip-permissions: %v", args)
+	}
+	if strings.Contains(joined, "--permission-mode") {
+		t.Errorf("unexpected --permission-mode in args: %v", args)
+	}
+}
+
 // --- Channel tests ---
 
 func TestBuildArgsChannelEnabled(t *testing.T) {

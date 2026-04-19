@@ -370,11 +370,16 @@ func buildArgs(prompt string, opts *agentrunner.Options) []string {
 	if opts.MaxTurns > 0 {
 		args = append(args, "--max-turns", strconv.Itoa(opts.MaxTurns))
 	}
-	if opts.DangerouslySkipPermissions {
+	co := GetClaudeOptions(opts)
+
+	// PermissionMode takes precedence over DangerouslySkipPermissions.
+	if co != nil && co.PermissionMode != "" {
+		args = append(args, "--permission-mode", co.PermissionMode)
+	} else if opts.DangerouslySkipPermissions {
 		args = append(args, "--dangerously-skip-permissions")
 	}
 
-	if co := GetClaudeOptions(opts); co != nil {
+	if co != nil {
 		for _, t := range co.AllowedTools {
 			args = append(args, "--allowedTools", t)
 		}

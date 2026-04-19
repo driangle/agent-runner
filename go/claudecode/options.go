@@ -94,6 +94,16 @@ func WithChannelLogFile(path string) agentrunner.Option {
 	}
 }
 
+// WithPermissionMode sets the --permission-mode flag for the Claude Code CLI.
+// Valid modes: "default", "acceptEdits", "auto", "plan", "dontAsk", "bypassPermissions".
+// When set, this takes precedence over DangerouslySkipPermissions.
+func WithPermissionMode(mode string) agentrunner.Option {
+	return func(o *agentrunner.Options) {
+		opts := getClaudeOpts(o)
+		opts.PermissionMode = mode
+	}
+}
+
 // WithChannelLogLevel sets the log level for the channel MCP server.
 // Valid values: "debug", "info", "warn", "error". Defaults to "info".
 // Only used when channel is enabled.
@@ -133,6 +143,11 @@ type ClaudeOptions struct {
 
 	// IncludePartialMessages enables streaming of partial/incremental messages.
 	IncludePartialMessages bool
+
+	// PermissionMode sets the --permission-mode flag.
+	// Valid modes: "default", "acceptEdits", "auto", "plan", "dontAsk", "bypassPermissions".
+	// When set, takes precedence over DangerouslySkipPermissions.
+	PermissionMode string
 
 	// ChannelEnabled enables two-way channel communication via the
 	// agentrunner-mcp MCP server (experimental).
